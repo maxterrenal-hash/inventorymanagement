@@ -232,45 +232,45 @@
         </div>
         <div class="mt12 row">
           <div class="col card">
-            <h3>Fast Moving <button class="btn" data-export="anFast" title="Export CSV">Export</button></h3>
+            <h3>Fast Moving</h3>
             <table id="anFast"><thead><tr><th>Item</th><th class="t-right">Qty</th></tr></thead><tbody></tbody></table>
           </div>
           <div class="col card">
-            <h3>Slow / Unused <button class="btn" data-export="anSlow" title="Export CSV">Export</button></h3>
+            <h3>Slow / Unused</h3>
             <table id="anSlow"><thead><tr><th>Item</th><th class="t-right">Qty</th></tr></thead><tbody></tbody></table>
           </div>
           <div class="col card">
-            <h3>Critical Stock <button class="btn" data-export="anCritical" title="Export CSV">Export</button></h3>
+            <h3>Critical Stock</h3>
             <table id="anCritical"><thead><tr><th>Item</th><th class="t-right">Qty</th></tr></thead><tbody></tbody></table>
           </div>
           <div class="col card">
-            <h3>Transfers by Ward <button class="btn" data-export="anWardTotals" title="Export CSV">Export</button></h3>
+            <h3>Transfers by Ward</h3>
             <table id="anWardTotals"><thead><tr><th>Ward</th><th class="t-right">Total Qty</th><th class="t-right">Distinct Items</th></tr></thead><tbody></tbody></table>
           </div>
           <div class="col card">
-            <h3>Items Transferred → <span id="anWardLabel">(any)</span> <button class="btn" data-export="anWardItems" title="Export CSV">Export</button></h3>
+            <h3>Items Transferred → <span id="anWardLabel">(any)</span></h3>
             <table id="anWardItems"><thead><tr><th>Item</th><th class="t-right">Qty</th></tr></thead><tbody></tbody></table>
           </div>
         </div>
         <div class="mt12 row">
           <div class="col card">
-            <h3>Stock Turnover <button class="btn" data-export="anTurnover" title="Export CSV">Export</button></h3>
+            <h3>Stock Turnover</h3>
             <table id="anTurnover"><thead><tr><th>Item</th><th class="t-right">Turnover</th><th class="t-right">Issues</th></tr></thead><tbody></tbody></table>
           </div>
           <div class="col card">
-            <h3>Days of Supply <button class="btn" data-export="anDoS" title="Export CSV">Export</button></h3>
+            <h3>Days of Supply</h3>
             <table id="anDoS"><thead><tr><th>Item</th><th class="t-right">Days</th><th class="t-right">On-hand</th></tr></thead><tbody></tbody></table>
           </div>
           <div class="col card">
-            <h3>Top Consumers (wards) <button class="btn" data-export="anTopCons" title="Export CSV">Export</button></h3>
+            <h3>Top Consumers (wards)</h3>
             <table id="anTopCons"><thead><tr><th>Ward</th><th class="t-right">Qty</th></tr></thead><tbody></tbody></table>
           </div>
           <div class="col card">
-            <h3>Dead Stock Aging <button class="btn" data-export="anDeadAging" title="Export CSV">Export</button></h3>
+            <h3>Dead Stock Aging</h3>
             <table id="anDeadAging"><thead><tr><th>Item</th><th class="t-right">Days Since Move</th></tr></thead><tbody></tbody></table>
           </div>
           <div class="col card">
-            <h3>Critical Breach Duration <button class="btn" data-export="anBreach" title="Export CSV">Export</button></h3>
+            <h3>Critical Breach Duration</h3>
             <table id="anBreach"><thead><tr><th>Item</th><th class="t-right">Days Below Crit</th></tr></thead><tbody></tbody></table>
           </div>
         </div>
@@ -748,137 +748,4 @@
     }
 
     // Items per selected ward
-    const wl = document.getElementById('anWardLabel'); if(wl) wl.textContent = ward || '(any)';
-    const wiBody = document.querySelector('#anWardItems tbody');
-    if(wiBody){
-      if(ward){
-        const map = itemsByWard.get(ward) || new Map();
-        const arrI = Array.from(map.entries()).map(([code,qty])=>({code,qty,name:(getItem(code)||{}).ItemName||code})).sort((a,b)=>b.qty-a.qty).slice(0,25);
-        wiBody.innerHTML = arrI.map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.qty}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No transfers to this ward.</td></tr>';
-      } else {
-        wiBody.innerHTML = '<tr><td colspan="2" class="hint">Choose a ward to see item breakdown.</td></tr>';
-      }
-    }
-
-    // New analytics tables
-    const tTB = document.querySelector('#anTurnover tbody');
-    if(tTB){ tTB.innerHTML = turnoverRows.slice(0,15).map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.turnover.toFixed(2)}</td><td class='t-right'>${x.issued}</td></tr>`).join('') || '<tr><td colspan="3" class="hint">No issues in window.</td></tr>'; }
-    const dTB = document.querySelector('#anDoS tbody');
-    if(dTB){ dTB.innerHTML = dosRows.slice(0,15).map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${Number.isFinite(x.days)? x.days.toFixed(1):'—'}</td><td class='t-right'>${x.cur}</td></tr>`).join('') || '<tr><td colspan="3" class="hint">No on-hand or usage.</td></tr>'; }
-    const cnsTB = document.querySelector('#anTopCons tbody');
-    if(cnsTB){ cnsTB.innerHTML = Array.from(totalsByWard.entries()).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([w,q])=>`<tr><td>${w||'—'}</td><td class='t-right'>${q}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No transfers.</td></tr>'; }
-    const agTB = document.querySelector('#anDeadAging tbody');
-    if(agTB){ agTB.innerHTML = agingRows.slice(0,20).map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.days===Infinity?'—':x.days}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No on-hand stock.</td></tr>'; }
-    const brTB = document.querySelector('#anBreach tbody');
-    if(brTB){ brTB.innerHTML = breachRows.slice(0,20).map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.days}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No breaches in window.</td></tr>'; }
-  }
-
-  // ===== Analysis Export (all analysis tables) =====
-  function tableToCSV(id){
-    const tbl = document.getElementById(id); if(!tbl) return '';
-    const rows = Array.from(tbl.querySelectorAll('tr'));
-    return rows.map(tr => Array.from(tr.children)
-      .map(td => '"' + String(td.innerText||'').replaceAll('"','""') + '"')
-      .join(',')
-    ).join('\n'); // fixed newline
-  }
-  function downloadCSV(csv, name){
-    const blob = new Blob([csv], {type:'text/csv'});
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click();
-  }
-  document.addEventListener('click', (e)=>{
-    const btn = e.target.closest('[data-export]'); if(!btn) return;
-    const id = btn.getAttribute('data-export');
-    const csv = tableToCSV(id);
-    const ward = (document.getElementById('anWard')?.value||'any') || 'any';
-    const days = document.getElementById('anDays')?.value || '30';
-    downloadCSV(csv, `${id}_${ward}_${days}d.csv`);
-  });
-
-  // ===== Wards mgmt =====
-  function renderWardList(){
-    const el = document.getElementById('wardList'); if(!el) return;
-    // Hidden per request (no pill list in UI)
-    el.innerHTML = '';
-  }
-  document.getElementById('btnWardAdd').onclick = ()=>{
-    const name = (document.getElementById('wardNew').value||'').trim().toUpperCase();
-    if(!name || name===CENTRAL) return;
-    const db = loadDB();
-    if(!db.wards.includes(name)) db.wards.push(name);
-    saveDB(db); document.getElementById('wardNew').value=''; ensureWardOptions(); renderWardList();
-  };
-
-  // ===== Backup / Restore =====
-  document.getElementById('btnBackup').onclick = ()=>{
-    const db = loadDB();
-    const blob = new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `osmak_ims_backup_${todayStr()}.json`;
-    a.click();
-  };
-  document.getElementById('btnRestore').onclick = ()=> document.getElementById('restoreFile').click();
-  document.getElementById('restoreFile').onchange = (e)=>{
-    const f = e.target.files?.[0]; if(!f) return;
-    const rd = new FileReader();
-    rd.onload = ()=>{ try{ localStorage.setItem(DB_KEY, rd.result); init(); alert('Restore complete'); }catch{ alert('Invalid file') } }
-    rd.readAsText(f);
-  };
-
-  // ===== Self Tests =====
-  function assert(name, cond){ if(!cond) throw new Error('Test failed: '+name); console.log('✔', name); }
-  function clearAll(){ localStorage.removeItem(DB_KEY); }
-  function runTests(){
-    console.clear(); console.log('Running OsMak IMS self-tests…');
-    clearAll();
-    // 1) Register items
-    upsertItem({ItemCode:'GAU-01',ItemName:'Gauze 4x4',Brand:'MedCare',Category:'DRESSINGS'});
-    upsertItem({ItemCode:'SYR-05',ItemName:'Syringe 5mL',Brand:'Terumo',Category:'Syringe',CriticalLevel:10});
-    assert('Items registered = 2', loadDB().items.length===2);
-    // 2) Stock in CENTRAL
-    stockSetDelta('GAU-01', CENTRAL, 100);
-    stockSetDelta('SYR-05', CENTRAL, 50);
-    addTx({TxID:uid(),Date:nowISO(),Type:'IN',ItemCode:'GAU-01',ItemName:'Gauze 4x4',Qty:100,FromWard:'',ToWard:CENTRAL,By:'TEST',Notes:'',Deleted:false});
-    addTx({TxID:uid(),Date:nowISO(),Type:'IN',ItemCode:'SYR-05',ItemName:'Syringe 5mL',Qty:50,FromWard:'',ToWard:CENTRAL,By:'TEST',Notes:'',Deleted:false});
-    assert('Central balances ok', stockGet('GAU-01',CENTRAL)===100 && stockGet('SYR-05',CENTRAL)===50);
-    // 3) Transfer to ER
-    stockSetDelta('GAU-01', CENTRAL, -20); stockSetDelta('GAU-01','ER', 20);
-    addTx({TxID:uid(),Date:nowISO(),Type:'TRANSFER',ItemCode:'GAU-01',ItemName:'Gauze 4x4',Qty:20,FromWard:CENTRAL,ToWard:'ER',By:'TEST',Notes:'',Deleted:false});
-    assert('Central after transfer', stockGet('GAU-01',CENTRAL)===80);
-    assert('ER after transfer', stockGet('GAU-01','ER')===20);
-    // 4) History list has rows for Manila today
-    const todayManila = todayStrTZ();
-    const histToday = listTxByDate(todayManila,'ER');
-    assert('History for ER today not empty', histToday.length>0);
-    // 5) Analysis smoke
-    document.getElementById('anDays').value = 30;
-    document.getElementById('anWard').value = 'ER';
-    runAnalysis();
-    assert('Analysis fast table rendered', (document.querySelector('#anFast tbody').innerText||'').length>=0);
-    // 6) Log & Transfer search lists show items
-    document.getElementById('logSearch').value='GAU'; renderLogItems();
-    assert('Log items show on search in Log list', (document.querySelector('#logItemsTbl tbody').innerText||'').includes('GAU-01'));
-    document.getElementById('trSearch').value='GAU'; renderTrItems();
-    assert('Transfer items show on search in Transfer list', (document.querySelector('#trItemsTbl tbody').innerText||'').includes('GAU-01'));
-
-    console.log('All tests passed.');
-  }
-
-  // ===== Button binds / init =====
-  document.getElementById('btnAnRun').onclick = runAnalysis;
-  document.getElementById('btnTests').onclick = runTests;
-  document.getElementById('btnPing').onclick = ()=> alert(`OK @ ${fmtTimeTZ(new Date(), TZ)} Manila time`);
-  document.getElementById('btnSync').onclick = ()=> alert('Sync is disabled in no-backend mode.');
-
-  function init(){
-    ensureWardOptions(); ensureCategoryOptions();
-    document.querySelectorAll('.menu button').forEach(btn=> btn.onclick = ()=> switchView(btn.dataset.view));
-    const hd = document.getElementById('histDate'); if(hd) hd.value = todayStrTZ();
-    switchView('registration');
-    renderItems(); renderInventory(); renderHistory(); renderWardList();
-  }
-  init();
-  </script>
-</body>
-</html>
+    const wl = document.getElementById('anWardLabel'); if
