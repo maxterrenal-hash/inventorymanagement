@@ -1,5 +1,5 @@
 /* ====== CONFIG ====== */
-const API = 'YOUR_APPS_SCRIPT_EXEC_URL_HERE'; // e.g. https://script.google.com/macros/s/AKfy.../exec
+const API = 'https://script.google.com/macros/s/AKfycbwYg0oVQLouwLQuPIBTYhn7yhHP63TaTdKMYyOIO04sbe_YrTodaBJeNX46Fp1Xy6QZ/exec'; // e.g. https://script.google.com/macros/s/AKfy.../exec
 
 /* ====== CORE HELPERS ====== */
 const $ = s => document.querySelector(s);
