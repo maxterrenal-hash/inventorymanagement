@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Ospital ng Makati - Inventory Management System</title>
+
+<style>
+    body {
+        margin: 0;
+        font-family: system-ui, -apple-system, sans-serif;
+        background: #009a3e;
+    }
+
+    #app {
+        width: 100%;
+        height: 100vh;
+    }
+
+    /* Center content like login screen */
+    .center-box {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+    }
+</style>
+
+</head>
+
+<body>
+
+<div id="app">
+    <div class="center-box">
+        <h2 style="color:white;">Loading…</h2>
+    </div>
+</div>
+
+
+<script>
+// ------------ GITHUB ROUTING FUNCTION ------------
+function loadPage(page) {
+    const baseURL = "https://raw.githubusercontent.com/<YOUR-USER>/<YOUR-REPO>/main/";
+
+    fetch(baseURL + page)
+        .then(res => res.text())
+        .then(html => {
+            document.getElementById("app").innerHTML = html;
+        })
+        .catch(err => {
+            document.getElementById("app").innerHTML =
+                "<p style='color:white;text-align:center;margin-top:40vh'>Failed to load page.</p>";
+            console.error("Error loading:", page, err);
+        });
+}
+
+// Default page → Login
+loadPage("login.html");
+</script>
+
+</body>
+</html>
