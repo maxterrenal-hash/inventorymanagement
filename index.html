@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Ospital ng Makati Inventory Management System (No‑Backend)</title>
+  <title>Ospital ng Makati Inventory Management System (No-Backend)</title>
   <style>
     :root{
       --osmak:#009a3e; --osmak-d:#007530; --bg:#f7f7f7; --card:#ffffff; --txt:#111827; --muted:#6b7280; --border:#e5e7eb; --danger:#dc2626; --accent:#2563eb;
@@ -54,6 +54,11 @@
     .accent{color:var(--accent)}
     .mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}
     .hidden{display:none}
+
+    /* show ~10 rows then scroll */
+    .scrollbox{max-height:360px;overflow:auto;border:1px solid var(--border);border-radius:12px}
+    .scrollbox table{margin:0}
+    .scrollbox thead th{position:sticky;top:0;z-index:1}
   </style>
 </head>
 <body>
@@ -66,7 +71,7 @@
       <button id="btnRestore" title="Restore from JSON">Restore</button>
       <button id="btnSync" title="Sync to Google Sheets">Sync</button>
       <button id="btnPing" title="Test connectivity">Ping</button>
-      <button id="btnTests" title="Run self‑tests">Tests</button>
+      <button id="btnTests" title="Run self-tests">Tests</button>
       <input id="restoreFile" type="file" accept="application/json" class="hidden" />
     </div>
   </header>
@@ -103,10 +108,13 @@
           <span class="hint" id="regHint"></span>
         </div>
         <div class="mt16">
-          <table id="itemsTable">
-            <thead><tr><th>Code</th><th>Name</th><th>Brand</th><th>Category</th><th>Critical</th><th>Remarks</th></tr></thead>
-            <tbody></tbody>
-          </table>
+          <h3>Items</h3>
+          <div class="scrollbox">
+            <table id="itemsTable">
+              <thead><tr><th>Code</th><th>Name</th><th>Brand</th><th>Category</th><th>Critical</th><th>Remarks</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </div>
       </section>
 
@@ -127,7 +135,9 @@
         </div>
         <div class="mt16">
           <h3>Items</h3>
-          <table id="logItemsTbl"><thead><tr><th>Code</th><th>Name</th><th>Brand</th><th>Category</th></tr></thead><tbody></tbody></table>
+          <div class="scrollbox">
+            <table id="logItemsTbl"><thead><tr><th>Code</th><th>Name</th><th>Brand</th><th>Category</th></tr></thead><tbody></tbody></table>
+          </div>
           <span class="hint">Click an item row to select it, then enter quantity and Add to Cart.</span>
           <h3 class="mt16">Cart</h3>
           <table id="logCartTbl"><thead><tr><th>Code</th><th>Name</th><th class="t-right">Qty</th><th></th></tr></thead><tbody></tbody></table>
@@ -159,7 +169,12 @@
           <span class="hint" id="trHint"></span>
         </div>
         <div class="mt16">
-          <h3>Cart</h3>
+          <h3>Items</h3>
+          <div class="scrollbox">
+            <table id="trItemsTbl"><thead><tr><th>Code</th><th>Name</th><th>Brand</th><th>Category</th></tr></thead><tbody></tbody></table>
+          </div>
+          <span class="hint">Click an item row to select it, then enter quantity and Add to Cart.</span>
+          <h3 class="mt16">Cart</h3>
           <table id="trCartTbl"><thead><tr><th>Code</th><th>Name</th><th>Ward</th><th class="t-right">Qty</th><th></th></tr></thead><tbody></tbody></table>
           <div class="actions mt12">
             <button class="btn" id="btnTrConfirm">Confirm</button>
@@ -173,10 +188,11 @@
         <h2>Inventory</h2>
         <div class="row mt12">
           <div class="col"><label>Ward</label><select id="invWard"></select></div>
+          <div class="col"><label>Category</label><select id="invCat"></select></div>
           <div class="col"><label>Search</label><input id="invSearch" placeholder="Filter..."/></div>
         </div>
         <div class="mt12">
-          <table id="invTbl"><thead><tr><th>Code</th><th>Name</th><th>Brand</th><th>Ward</th><th class="t-right">Qty</th><th>Status</th></tr></thead><tbody></tbody></table>
+          <table id="invTbl"><thead><tr><th>Code</th><th>Name</th><th>Brand</th><th>Category</th><th>Ward</th><th class="t-right">Qty</th><th>Status</th></tr></thead><tbody></tbody></table>
         </div>
       </section>
 
@@ -198,9 +214,10 @@
             <button class="btn" id="btnExport">Export CSV</button>
           </div>
         </div>
+        <div id="wardList" class="mt8"></div>
         <div class="mt12">
           <table id="histTbl"><thead><tr><th>Time</th><th>Type</th><th>Item</th><th class="t-right">Qty</th><th>From</th><th>To</th><th>By</th><th></th></tr></thead><tbody></tbody></table>
-          <span class="hint">Delete only entries on the selected date. Deleting auto‑reverses stock.</span>
+          <span class="hint">Delete only entries on the selected date. Deleting auto-reverses stock.</span>
         </div>
       </section>
 
@@ -234,9 +251,14 @@
   // ===== Simple localStorage DB =====
   const DB_KEY = 'osmak_ims_v1';
   const CENTRAL = 'CENTRAL';
+  const TZ = 'Asia/Manila'; // display + date filters use Manila time
 
-  const nowISO = () => new Date().toISOString();
-  const todayStr = (d=new Date()) => d.toISOString().slice(0,10);
+  const nowISO = () => new Date().toISOString(); // stored in UTC ISO
+  const todayStr = (d=new Date()) => d.toISOString().slice(0,10); // UTC (for tests)
+  const fmtDateTZ = (d, tz=TZ) => new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
+  const fmtTimeTZ = (d, tz=TZ) => new Intl.DateTimeFormat('en-GB',{timeZone:tz,hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(d);
+  const todayStrTZ = (tz=TZ) => fmtDateTZ(new Date(), tz);
+  const dateOfISOinTZ = (iso, tz=TZ) => fmtDateTZ(new Date(iso), tz);
   const uid = () => `TX-${new Date().toISOString().replace(/[-:.TZ]/g,'').slice(0,14)}-${Math.random().toString(36).slice(2,6)}`;
 
   const loadDB = () => {
@@ -285,7 +307,7 @@
   }
   function listTxByDate(dateStr, wardFilter){
     const db = loadDB();
-    return db.tx.filter(t=> t.Date.startsWith(dateStr) && (!wardFilter || t.FromWard===wardFilter || t.ToWard===wardFilter));
+    return db.tx.filter(t=> dateOfISOinTZ(t.Date, TZ)===dateStr && (!wardFilter || t.FromWard===wardFilter || t.ToWard===wardFilter));
   }
 
   function ensureWardOptions(){
@@ -302,6 +324,15 @@
       if(isInv) sel.value='ALL';
     });
   }
+  function ensureCategoryOptions(){
+    const sel = document.getElementById('invCat');
+    if(!sel) return;
+    const cats = Array.from(new Set(loadDB().items.map(it => (it.Category||'').trim()).filter(Boolean))).sort();
+    sel.innerHTML = '';
+    sel.appendChild(new Option('ALL','ALL'));
+    cats.forEach(c => sel.appendChild(new Option(c,c)));
+    sel.value = 'ALL';
+  }
 
   // ===== UI state =====
   const views = ['registration','log','transfer','inventory','history','analysis'];
@@ -313,10 +344,11 @@
       if(sec) sec.classList.toggle('hidden', v!==key);
     });
     if(key==='inventory') renderInventory();
-    if(key==='history'){ document.getElementById('histDate').value = todayStr(); renderHistory(); }
+    if(key==='history'){ document.getElementById('histDate').value = todayStrTZ(); renderHistory(); }
     if(key==='analysis') runAnalysis();
     if(key==='registration') renderItems();
     if(key==='log') renderLogItems();
+    if(key==='transfer') renderTrItems();
   }
 
   // ===== Registration =====
@@ -337,7 +369,8 @@
       const rec = upsertItem({ItemCode:code, ItemName:name, Brand:brand, Category:cat, Remarks:rem, CriticalLevel:crit});
       document.getElementById('regHint').textContent = `Saved ${rec.ItemCode}`;
       ['regCode','regName','regBrand','regCat','regRemarks','regCrit'].forEach(id=>document.getElementById(id).value='');
-      renderItems(); if(document.getElementById('logItemsTbl')) renderLogItems();
+      ensureCategoryOptions();
+      renderItems(); if(document.getElementById('logItemsTbl')) renderLogItems(); renderInventory();
     }catch(e){ document.getElementById('regHint').textContent = e.message; }
   };
 
@@ -381,11 +414,12 @@
   };
   function renderLogItems(){
     const tb = document.querySelector('#logItemsTbl tbody'); if(!tb) return;
-    const q = document.getElementById('logSearch').value || '';
+    const q = (document.getElementById('logSearch').value || '').trim();
+    if(q===''){ tb.innerHTML=''; return; }
     const list = findItemByQuery(q);
     tb.innerHTML = (list.length? list.map(it=>
       `<tr data-code="${it.ItemCode}"><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td>${it.Category||''}</td></tr>`
-    ).join('') : '<tr><td colspan="4" class="hint">No items yet. Register items first.</td></tr>');
+    ).join('') : '<tr><td colspan="4" class="hint">No matches.</td></tr>');
     Array.from(tb.querySelectorAll('tr[data-code]')).forEach(tr=>{
       tr.onclick = ()=>{ document.getElementById('logSearch').value = tr.dataset.code; document.getElementById('logQty').focus(); };
     });
@@ -414,6 +448,19 @@
   }
   window.removeTr = (i)=>{ trCart.splice(i,1); renderTrCart(); };
   wireSuggest('trSearch','trSuggest',(code)=>{ document.getElementById('trSearch').value = code; });
+  function renderTrItems(){
+    const tb = document.querySelector('#trItemsTbl tbody'); if(!tb) return;
+    const q = (document.getElementById('trSearch').value||'').trim();
+    if(q===''){ tb.innerHTML=''; return; }
+    const list = findItemByQuery(q);
+    tb.innerHTML = (list.length? list.map(it=>
+      `<tr data-code="${it.ItemCode}"><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td>${it.Category||''}</td></tr>`
+    ).join('') : '<tr><td colspan="4" class="hint">No matches.</td></tr>');
+    Array.from(tb.querySelectorAll('tr[data-code]')).forEach(tr=>{
+      tr.onclick = ()=>{ document.getElementById('trSearch').value = tr.dataset.code; document.getElementById('trQty').focus(); };
+    });
+  }
+  (function(){ const el = document.getElementById('trSearch'); if(!el) return; el.addEventListener('input', renderTrItems); el.addEventListener('focus', renderTrItems); })();
   document.getElementById('btnTrAdd').onclick = ()=>{
     const code = (document.getElementById('trSearch').value||'').trim().toUpperCase();
     const qty = Number(document.getElementById('trQty').value||0);
@@ -446,8 +493,9 @@
 
   // ===== Inventory =====
   function renderInventory(){
-    ensureWardOptions();
+    ensureWardOptions(); ensureCategoryOptions();
     const ward = document.getElementById('invWard').value; // ALL or ward
+    const cat = (document.getElementById('invCat') && document.getElementById('invCat').value) || 'ALL';
     const q = (document.getElementById('invSearch').value||'').toLowerCase();
     const db = loadDB();
     let rows = [];
@@ -455,36 +503,39 @@
     for(const s of filtStock){
       const it = getItem(s.ItemCode);
       if(!it) continue;
+      if(cat!=='ALL' && (it.Category||'') !== cat) continue;
       const text = `${it.ItemCode} ${it.ItemName} ${it.Brand||''} ${it.Category||''}`.toLowerCase();
       if(q && !text.includes(q)) continue;
       const crit = Number(it.CriticalLevel||0);
       const status = s.Qty<=0? '<span class="pill bad">Out</span>' : (crit && s.Qty<=crit ? '<span class="pill warn">Critical</span>' : '<span class="pill">OK</span>');
-      rows.push(`<tr><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td>${s.Ward}</td><td class="t-right">${s.Qty}</td><td>${status}</td></tr>`);
+      rows.push(`<tr><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td>${it.Category||''}</td><td>${s.Ward}</td><td class="t-right">${s.Qty}</td><td>${status}</td></tr>`);
     }
-    // Include zero rows when searching
-    if(q){
-      const codesInRows = new Set(filtStock.map(s=>s.ItemCode));
+    // Include zero rows when searching or category filtered
+    if(q || cat!=='ALL'){
+      const codesInRows = new Set(rows.map(r => r.match(/<td>([^<]*)<\/td>/)?.[1]).filter(Boolean));
       db.items.forEach(it=>{
+        if(cat!=='ALL' && (it.Category||'') !== cat) return;
         const text = `${it.ItemCode} ${it.ItemName} ${it.Brand||''} ${it.Category||''}`.toLowerCase();
-        if(!text.includes(q)) return;
-        if(!codesInRows.has(it.ItemCode)) rows.push(`<tr><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td>${ward==='ALL'?'—':ward}</td><td class="t-right">0</td><td><span class='pill bad'>Out</span></td></tr>`);
+        if(q && !text.includes(q)) return;
+        if(!codesInRows.has(it.ItemCode)) rows.push(`<tr><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td>${it.Category||''}</td><td>${ward==='ALL'?'—':ward}</td><td class="t-right">0</td><td><span class='pill bad'>Out</span></td></tr>`);
       })
     }
-    document.querySelector('#invTbl tbody').innerHTML = rows.join('') || '<tr><td colspan="6" class="hint">No records.</td></tr>';
+    document.querySelector('#invTbl tbody').innerHTML = rows.join('') || '<tr><td colspan="7" class="hint">No records.</td></tr>';
   }
   document.getElementById('invSearch').oninput = renderInventory;
   document.getElementById('invWard').onchange = renderInventory;
+  const _invCatEl = document.getElementById('invCat'); if(_invCatEl) _invCatEl.onchange = renderInventory;
 
   // ===== History =====
   function renderHistory(){
     ensureWardOptions();
-    const d = document.getElementById('histDate').value || todayStr();
+    const d = document.getElementById('histDate').value || todayStrTZ();
     const ward = document.getElementById('histWard').value;
     const rows = listTxByDate(d, ward);
     const tb = document.querySelector('#histTbl tbody');
     tb.innerHTML = rows.map(r=>{
-      const time = r.Date.slice(11,19);
-      const delBtn = `<button class="btn" onclick=\"delTx('${r.TxID}')\">Delete</button>`;
+      const time = fmtTimeTZ(new Date(r.Date), TZ);
+      const delBtn = '<button class="btn" onclick="delTx(\'' + r.TxID + '\')">Delete</button>';
       return `<tr><td>${time}</td><td>${r.Type}</td><td><b>${r.ItemCode}</b> — ${r.ItemName}</td><td class="t-right">${r.Qty}</td><td>${r.FromWard||''}</td><td>${r.ToWard||''}</td><td>${r.By||''}</td><td>${r.Deleted? '<span class=hint>deleted</span>' : delBtn}</td></tr>`
     }).join('') || '<tr><td colspan="8" class="hint">No transactions for selected date.</td></tr>';
   }
@@ -494,11 +545,11 @@
 
   window.delTx = (txid)=>{
     const db = loadDB();
-    const d = document.getElementById('histDate').value || todayStr();
+    const d = document.getElementById('histDate').value || todayStrTZ();
     const ix = db.tx.findIndex(t=>t.TxID===txid);
     if(ix<0) return;
     const t = db.tx[ix];
-    if(!t.Date.startsWith(d)){ alert('Can only delete entries on selected date.'); return }
+    if(dateOfISOinTZ(t.Date, TZ)!==d){ alert('Can only delete entries on selected date.'); return }
     if(t.Deleted){ alert('Already deleted.'); return }
     if(t.Type==='IN'){
       stockSetDelta(t.ItemCode, t.ToWard, -t.Qty);
@@ -513,11 +564,13 @@
 
   // Export CSV
   document.getElementById('btnExport').onclick = ()=>{
-    const d = document.getElementById('histDate').value || todayStr();
+    const d = document.getElementById('histDate').value || todayStrTZ();
     const ward = document.getElementById('histWard').value;
     const rows = listTxByDate(d, ward);
     const cols = ['TxID','Date','Type','ItemCode','ItemName','Qty','FromWard','ToWard','By','Notes','Deleted'];
-    const csv = [cols.join(',')].concat(rows.map(r=> cols.map(c=>`"${String(r[c]??'').replace(/"/g,'""')}"`).join(','))).join('\n');
+    const csv = [cols.join(',')]
+      .concat(rows.map(r=> cols.map(c=>`"${String(r[c] ?? '').replaceAll('"','""')}"`).join(',')))
+      .join('\n');
     const blob = new Blob([csv], {type:'text/csv'});
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `transactions_${d}.csv`; a.click();
   };
@@ -526,7 +579,7 @@
   function runAnalysis(){
     ensureWardOptions();
     const days = Number(document.getElementById('anDays').value||30);
-    const ward = document.getElementById('anWard').value; // optional filter
+    const ward = document.getElementById('anWard').value;
     const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-days);
     const db = loadDB();
     const mv = new Map();
@@ -557,12 +610,17 @@
   document.getElementById('btnAnRun').onclick = runAnalysis;
 
   // ===== Wards mgmt =====
+  function renderWardList(){
+    const el = document.getElementById('wardList'); if(!el) return;
+    // Hidden per request (no pill list in UI)
+    el.innerHTML = '';
+  }
   document.getElementById('btnWardAdd').onclick = ()=>{
     const name = (document.getElementById('wardNew').value||'').trim().toUpperCase();
     if(!name || name===CENTRAL) return;
     const db = loadDB();
     if(!db.wards.includes(name)) db.wards.push(name);
-    saveDB(db); document.getElementById('wardNew').value=''; ensureWardOptions();
+    saveDB(db); document.getElementById('wardNew').value=''; ensureWardOptions(); renderWardList();
   };
 
   // ===== Backup / Restore =====
@@ -586,7 +644,7 @@
   function assert(name, cond){ if(!cond) throw new Error('Test failed: '+name); console.log('✔', name); }
   function clearAll(){ localStorage.removeItem(DB_KEY); }
   function runTests(){
-    console.clear(); console.log('Running OsMak IMS self‑tests…');
+    console.clear(); console.log('Running OsMak IMS self-tests…');
     clearAll();
     // 1) Register items
     upsertItem({ItemCode:'GAU-01',ItemName:'Gauze 4x4',Brand:'MedCare',Category:'DRESSINGS'});
@@ -604,17 +662,39 @@
     addTx({TxID:uid(),Date:nowISO(),Type:'TRANSFER',ItemCode:'GAU-01',ItemName:'Gauze 4x4',Qty:qty,FromWard:CENTRAL,ToWard:'ER',By:'TEST',Notes:'',Deleted:false});
     assert('Central GAU-01=80 after transfer', stockGet('GAU-01',CENTRAL)===80);
     assert('ER GAU-01=20 after transfer', stockGet('GAU-01','ER')===20);
-    // 4) Delete last transfer (auto‑reverse like UI does)
-    const today = todayStr();
-    const last = loadDB().tx.find(t=>t.Type==='TRANSFER' && t.Date.startsWith(today));
+    // 4) Delete last transfer (auto-reverse)
+    const todayUTC = todayStr();
+    const last = loadDB().tx.find(t=>t.Type==='TRANSFER' && t.Date.startsWith(todayUTC));
     assert('Found transfer to delete', !!last);
-    // mimic delTx
     stockSetDelta(last.ItemCode, last.ToWard, -last.Qty);
     stockSetDelta(last.ItemCode, last.FromWard, last.Qty);
     last.Deleted = true; saveDB(loadDB());
     assert('Central GAU-01=100 after reversal', stockGet('GAU-01',CENTRAL)===100);
     assert('ER GAU-01=0 after reversal', stockGet('GAU-01','ER')===0);
-    console.log('All tests passed.'); alert('All tests passed. Open console for details.');
+    // 5) Manila date filter finds today’s IN
+    const manilaDate = dateOfISOinTZ(nowISO(), TZ);
+    const todaysRows = listTxByDate(manilaDate, '');
+    assert('History list (Manila) has rows for today', todaysRows.length>=2);
+    // 6) Ward / options
+    renderWardList();
+    assert('deleteWard function is not exposed', typeof deleteWard === 'undefined');
+    ensureWardOptions();
+    assert('invWard select has options', (document.getElementById('invWard')?.options.length||0) > 0);
+
+    console.log('All tests passed.');
+    // New micro-tests for item lists visibility & behavior
+    document.getElementById('logSearch').value=''; renderLogItems();
+    const logListEmpty = (document.querySelector('#logItemsTbl tbody').innerText||'').trim()==='';
+    assert('Log items hidden on blank search', logListEmpty);
+    document.getElementById('trSearch').value=''; renderTrItems();
+    const trListEmpty = (document.querySelector('#trItemsTbl tbody').innerText||'').trim()==='';
+    assert('Transfer items hidden on blank search', trListEmpty);
+    document.getElementById('logSearch').value='GAU'; renderLogItems();
+    assert('Log items show on typed query', (document.querySelector('#logItemsTbl tbody').innerText||'').includes('GAU-01'));
+    document.getElementById('trSearch').value='SYR'; renderTrItems();
+    assert('Transfer items show on typed query', (document.querySelector('#trItemsTbl tbody').innerText||'').includes('SYR-05'));
+
+    alert('All tests passed. Open console for details.');
     // Refresh views so user sees seeded data
     renderItems(); renderInventory(); renderHistory(); runAnalysis();
   }
@@ -623,12 +703,13 @@
   // ===== Init =====
   function init(){
     ensureWardOptions();
+    ensureCategoryOptions();
+    renderWardList();
     renderItems();
-    document.getElementById('histDate').value = todayStr();
+    document.getElementById('histDate').value = todayStrTZ();
     renderInventory();
     renderHistory();
     runAnalysis();
-    // Optional demo seed if URL has #demo
     if(location.hash==="#demo"){ if(loadDB().items.length===0) runTests(); }
   }
 
@@ -646,7 +727,6 @@
     try{
       btn.disabled = true; btn.textContent = 'Syncing…';
       const payload = loadDB();
-      // Use a CORS "simple request" to avoid preflight that Apps Script can't answer reliably
       const res = await fetch(SYNC.url, {
         method:'POST',
         headers:{ 'Content-Type':'text/plain;charset=utf-8' }, // simple header (no preflight)
@@ -676,7 +756,6 @@
       alert('Ping failed: '+err.message+ (location.protocol==='file:'?'\nTip: host over HTTPS (GitHub Pages), not file://':'') );
     }
   };
-
   </script>
 </body>
 </html>
