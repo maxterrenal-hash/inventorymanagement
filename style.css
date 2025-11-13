@@ -1,0 +1,39 @@
+:root{
+  --osmak-green:#009a3e; --osmak-green-dark:#007530;
+  --bg:#f7f7f7; --card:#ffffff; --text:#111827; --muted:#6b7280;
+  --border:#e5e7eb; --accent:#2563eb; --danger:#dc2626;
+}
+*{box-sizing:border-box}
+html,body,#app{height:100%}
+body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Inter,sans-serif;background:var(--bg);color:var(--text)}
+a{color:inherit;text-decoration:none}
+input,select,button{font:inherit}
+button{cursor:pointer}
+
+.center{display:flex;align-items:center;justify-content:center;height:100%}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;box-shadow:0 10px 20px rgba(0,0,0,.05)}
+.h1{font-size:22px;margin:8px 0 16px}
+.row{display:flex;gap:12px}
+.col{display:flex;flex-direction:column;gap:8px}
+.input{padding:10px 12px;border:1px solid var(--border);border-radius:8px}
+.btn{padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:#fff}
+.btn.primary{background:var(--osmak-green);color:#fff;border-color:var(--osmak-green-dark)}
+.btn.ghost{background:#fff}
+.note{color:var(--muted);font-size:12px}
+
+.layout{display:grid;grid-template-columns:260px 1fr;height:100%}
+.sidebar{background:#ffffff;border-right:1px solid var(--border);display:flex;flex-direction:column}
+.brand{display:flex;gap:10px;align-items:center;padding:14px;border-bottom:1px solid var(--border)}
+.brand img{width:36px;height:36px}
+.menu{padding:8px}
+.menu button{width:100%;text-align:left;border:none;background:transparent;padding:10px 12px;border-radius:8px}
+.menu button.active, .menu button:hover{background:#f0fdf4}
+.userbar{margin-top:auto;padding:12px;border-top:1px solid var(--border);font-size:13px;color:var(--muted)}
+.main{padding:18px;overflow:auto}
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:12px}
+.table{width:100%;border-collapse:collapse;font-size:14px;background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.table th,.table td{border-bottom:1px solid var(--border);padding:10px}
+.toast{position:fixed;right:16px;top:16px;background:#111827;color:#fff;padding:10px 12px;border-radius:8px;opacity:.95;z-index:999}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid var(--border);color:#374151}
+.badge.green{background:#f0fdf4;border-color:#bbf7d0;color:#166534}
