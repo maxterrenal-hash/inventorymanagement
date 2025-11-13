@@ -31,6 +31,7 @@
 
   <main id="main"></main>
 
+  <!-- Registration -->
   <template id="tpl-registration">
     <section class="card">
       <h2>Item Registration</h2>
@@ -49,6 +50,7 @@
     </section>
   </template>
 
+  <!-- Log -->
   <template id="tpl-log">
     <section class="card">
       <h2>Log Stock (CENTRAL)</h2>
@@ -61,15 +63,42 @@
         <label class="span2">Notes<input id="l-notes" placeholder="Optional"></label>
         <button id="l-add">Add to Cart</button>
       </div>
+
       <h3>Cart</h3>
       <table class="table" id="l-cart"></table>
+
       <div class="row">
         <button id="l-confirm">Confirm Stock-in</button>
         <span id="l-msg" class="msg"></span>
       </div>
+
+      <h3 style="margin-top:18px">All Items</h3>
+      <small>Click an item below to open Quick Add. This reads the <b>Items</b> sheet and shows everything even when search is blank.</small>
+      <div id="l-quickadd" class="quickadd hidden">
+        <div class="qa-head">
+          <div class="qa-title">Quick Add</div>
+          <button class="qa-close" id="qa-close" title="Close">✖</button>
+        </div>
+        <div class="qa-body">
+          <div class="qa-itemline">
+            <strong id="qa-code"></strong> — <span id="qa-name"></span>
+          </div>
+          <div class="row">
+            <label>Qty<input id="qa-qty" type="number" min="1" value="1"></label>
+            <label class="grow">Notes<input id="qa-notes" placeholder="Optional"></label>
+            <button id="qa-add">Add to Cart</button>
+          </div>
+        </div>
+      </div>
+      <div class="row" style="margin:8px 0">
+        <input id="l-filter" placeholder="Filter list (client-side)">
+        <button id="l-refresh">Refresh</button>
+      </div>
+      <table class="table" id="l-all"></table>
     </section>
   </template>
 
+  <!-- Transfer -->
   <template id="tpl-transfer">
     <section class="card">
       <h2>Transfer (CENTRAL → Ward)</h2>
@@ -94,6 +123,7 @@
     </section>
   </template>
 
+  <!-- Inventory -->
   <template id="tpl-inventory">
     <section class="card">
       <h2>Inventory (CENTRAL)</h2>
@@ -106,6 +136,7 @@
     </section>
   </template>
 
+  <!-- History -->
   <template id="tpl-history">
     <section class="card">
       <h2>Transaction History</h2>
@@ -121,6 +152,7 @@
     </section>
   </template>
 
+  <!-- Analysis -->
   <template id="tpl-analysis">
     <section class="card">
       <h2>Data Analysis</h2>
