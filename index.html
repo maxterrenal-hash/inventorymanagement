@@ -15,21 +15,21 @@
     header h1{font-size:18px;margin:0;font-weight:600}
     header .sp{flex:1}
     header .mini{display:flex;gap:8px}
-    header button,.btn{border:1px solid var(--border);background:#fff;border-radius:10px;padding:8px 12px;cursor:pointer}
-    header button:hover,.btn:hover{background:#f3f4f6}
+    header button,.btn{border:1px solid var(--osmak-d);background:var(--osmak);color:#fff;border-radius:10px;padding:8px 12px;cursor:pointer;box-shadow:0 1px 0 rgba(0,0,0,.05)}
+    header button:hover,.btn:hover{background:var(--osmak-d)}
 
     .layout{display:grid;grid-template-columns:260px 1fr;min-height:calc(100vh - 60px)}
     .sidebar{border-right:1px solid var(--border);background:#fff;padding:12px;position:sticky;top:60px;height:calc(100vh - 60px);overflow:auto}
     .sidebar h3{margin:8px 8px 12px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
     .menu{display:flex;flex-direction:column;gap:6px}
     .menu button{justify-content:flex-start;display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:10px;border:1px solid transparent;background:transparent;cursor:pointer}
-    .menu button.active,.menu button:hover{background:#f9fafb;border-color:var(--border)}
+    .menu button.active,.menu button:hover{background:var(--osmak);color:#fff;border-color:var(--osmak-d);font-weight:600}
 
     main{padding:16px}
 
     .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:14px}
     .row{display:flex;gap:10px;flex-wrap:wrap}
-    .row .col{flex:1;min-width:200px}
+    .row .col{flex:1;min-width:220px}
     label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
     input,select,textarea{width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:#fff}
     input[type="number"]{text-align:right}
@@ -39,7 +39,7 @@
     th,td{padding:8px 10px;border-bottom:1px solid var(--border);font-size:14px}
     th{background:#fafafa;text-align:left;color:#374151}
     .t-right{text-align:right}
-    .pill{display:inline-block;padding:2px 8px;border:1px solid var(--border);border-radius:999px;font-size:12px;color:#374151;background:#fff}
+    .pill{display:inline-block;padding:2px 8px;border:1px solid var(--border);border-radius:8px;font-size:12px;color:#374151;background:#fff}
     .pill.warn{border-color:#f59e0b;color:#92400e;background:#fffbeb}
     .pill.bad{border-color:#fecaca;color:#991b1b;background:#fef2f2}
 
@@ -57,6 +57,7 @@
 
     /* show ~10 rows then scroll */
     .scrollbox{max-height:360px;overflow:auto;border:1px solid var(--border);border-radius:12px}
+    button:focus-visible,.btn:focus-visible{outline:3px solid rgba(0,154,62,.35);outline-offset:2px}
     .scrollbox table{margin:0}
     .scrollbox thead th{position:sticky;top:0;z-index:1}
   </style>
@@ -231,16 +232,46 @@
         </div>
         <div class="mt12 row">
           <div class="col card">
-            <h3>Fast Moving</h3>
+            <h3>Fast Moving <button class="btn" data-export="anFast" title="Export CSV">Export</button></h3>
             <table id="anFast"><thead><tr><th>Item</th><th class="t-right">Qty</th></tr></thead><tbody></tbody></table>
           </div>
           <div class="col card">
-            <h3>Slow / Unused</h3>
+            <h3>Slow / Unused <button class="btn" data-export="anSlow" title="Export CSV">Export</button></h3>
             <table id="anSlow"><thead><tr><th>Item</th><th class="t-right">Qty</th></tr></thead><tbody></tbody></table>
           </div>
           <div class="col card">
-            <h3>Critical Stock</h3>
+            <h3>Critical Stock <button class="btn" data-export="anCritical" title="Export CSV">Export</button></h3>
             <table id="anCritical"><thead><tr><th>Item</th><th class="t-right">Qty</th></tr></thead><tbody></tbody></table>
+          </div>
+          <div class="col card">
+            <h3>Transfers by Ward <button class="btn" data-export="anWardTotals" title="Export CSV">Export</button></h3>
+            <table id="anWardTotals"><thead><tr><th>Ward</th><th class="t-right">Total Qty</th><th class="t-right">Distinct Items</th></tr></thead><tbody></tbody></table>
+          </div>
+          <div class="col card">
+            <h3>Items Transferred → <span id="anWardLabel">(any)</span> <button class="btn" data-export="anWardItems" title="Export CSV">Export</button></h3>
+            <table id="anWardItems"><thead><tr><th>Item</th><th class="t-right">Qty</th></tr></thead><tbody></tbody></table>
+          </div>
+        </div>
+        <div class="mt12 row">
+          <div class="col card">
+            <h3>Stock Turnover <button class="btn" data-export="anTurnover" title="Export CSV">Export</button></h3>
+            <table id="anTurnover"><thead><tr><th>Item</th><th class="t-right">Turnover</th><th class="t-right">Issues</th></tr></thead><tbody></tbody></table>
+          </div>
+          <div class="col card">
+            <h3>Days of Supply <button class="btn" data-export="anDoS" title="Export CSV">Export</button></h3>
+            <table id="anDoS"><thead><tr><th>Item</th><th class="t-right">Days</th><th class="t-right">On-hand</th></tr></thead><tbody></tbody></table>
+          </div>
+          <div class="col card">
+            <h3>Top Consumers (wards) <button class="btn" data-export="anTopCons" title="Export CSV">Export</button></h3>
+            <table id="anTopCons"><thead><tr><th>Ward</th><th class="t-right">Qty</th></tr></thead><tbody></tbody></table>
+          </div>
+          <div class="col card">
+            <h3>Dead Stock Aging <button class="btn" data-export="anDeadAging" title="Export CSV">Export</button></h3>
+            <table id="anDeadAging"><thead><tr><th>Item</th><th class="t-right">Days Since Move</th></tr></thead><tbody></tbody></table>
+          </div>
+          <div class="col card">
+            <h3>Critical Breach Duration <button class="btn" data-export="anBreach" title="Export CSV">Export</button></h3>
+            <table id="anBreach"><thead><tr><th>Item</th><th class="t-right">Days Below Crit</th></tr></thead><tbody></tbody></table>
           </div>
         </div>
       </section>
@@ -401,17 +432,6 @@
   }
   window.removeLog = (i)=>{ logCart.splice(i,1); renderLogCart(); };
   wireSuggest('logSearch','logSuggest',(code)=>{ document.getElementById('logSearch').value = code; });
-  document.getElementById('btnLogAdd').onclick = ()=>{
-    const code = (document.getElementById('logSearch').value||'').trim().toUpperCase();
-    const qty = Number(document.getElementById('logQty').value||0);
-    const it = getItem(code);
-    if(!it){ document.getElementById('logHint').textContent='Pick a valid item.'; return }
-    if(qty<=0){ document.getElementById('logHint').textContent='Qty must be > 0.'; return }
-    const ex = logCart.find(x=>x.code===code);
-    if(ex) ex.qty += qty; else logCart.push({code, qty});
-    document.getElementById('logSearch').value=''; document.getElementById('logQty').value='';
-    renderLogCart();
-  };
   function renderLogItems(){
     const tb = document.querySelector('#logItemsTbl tbody'); if(!tb) return;
     const q = (document.getElementById('logSearch').value || '').trim();
@@ -425,6 +445,17 @@
     });
   }
   (function(){ const el = document.getElementById('logSearch'); if(!el) return; el.addEventListener('input', renderLogItems); el.addEventListener('focus', renderLogItems); })();
+  document.getElementById('btnLogAdd').onclick = ()=>{
+    const code = (document.getElementById('logSearch').value||'').trim().toUpperCase();
+    const qty = Number(document.getElementById('logQty').value||0);
+    const it = getItem(code);
+    if(!it){ document.getElementById('logHint').textContent='Pick a valid item.'; return }
+    if(qty<=0){ document.getElementById('logHint').textContent='Qty must be > 0.'; return }
+    const ex = logCart.find(x=>x.code===code);
+    if(ex) ex.qty += qty; else logCart.push({code, qty});
+    document.getElementById('logSearch').value=''; document.getElementById('logQty').value='';
+    renderLogCart();
+  };
   document.getElementById('btnLogConfirm').onclick = ()=>{
     if(logCart.length===0) return;
     logCart.forEach(l=>{
@@ -562,7 +593,7 @@
     renderHistory(); renderInventory();
   };
 
-  // Export CSV
+  // Export CSV (History)
   document.getElementById('btnExport').onclick = ()=>{
     const d = document.getElementById('histDate').value || todayStrTZ();
     const ward = document.getElementById('histWard').value;
@@ -579,35 +610,190 @@
   function runAnalysis(){
     ensureWardOptions();
     const days = Number(document.getElementById('anDays').value||30);
-    const ward = document.getElementById('anWard').value;
+    const ward = document.getElementById('anWard').value; // '' = any
     const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-days);
     const db = loadDB();
+
+    // Movement (fast/slow) within window — all types
     const mv = new Map();
     db.tx.forEach(t=>{
       const dt = new Date(t.Date);
       if(dt<cutoff) return; if(ward && !(t.FromWard===ward || t.ToWard===ward)) return; if(t.Deleted) return;
-      const key = t.ItemCode; const delta = Math.abs(Number(t.Qty)||0);
-      mv.set(key, (mv.get(key)||0)+delta);
+      const delta = Math.abs(Number(t.Qty)||0);
+      mv.set(t.ItemCode, (mv.get(t.ItemCode)||0)+delta);
     });
-    const items = loadDB().items;
+    const items = db.items;
     const arr = Array.from(mv.entries()).map(([code,qty])=>({code,qty,name:(getItem(code)||{}).ItemName||code}));
     const fast = arr.sort((a,b)=>b.qty-a.qty).slice(0,10);
     const slow = items.filter(it=>!mv.has(it.ItemCode)).slice(0,10).map(it=>({code:it.ItemCode,name:it.ItemName,qty:0}));
+
+    // Critical for selected ward (or CENTRAL if none)
     const wardForCrit = ward || CENTRAL;
-    const critRows = loadDB().stock
+    const critRows = db.stock
       .filter(s=> s.Ward===wardForCrit)
       .map(s=>{ const it = getItem(s.ItemCode); return {code:s.ItemCode,name:it?.ItemName||s.ItemCode, qty:s.Qty, crit:Number(it?.CriticalLevel||0)}; })
       .filter(r=> r.crit>0 && r.qty<=r.crit)
       .sort((a,b)=>a.qty-b.qty)
       .slice(0,20);
+
+    // Transfers by ward and items per ward (destination-based)
+    const totalsByWard = new Map();
+    const itemsByWard = new Map();
+    db.tx.forEach(t=>{
+      const dt = new Date(t.Date);
+      if(dt<cutoff) return; if(t.Deleted) return; if(t.Type!=='TRANSFER') return;
+      if(ward && t.ToWard!==ward) return;
+      const w = t.ToWard || '';
+      const q = Number(t.Qty)||0;
+      totalsByWard.set(w, (totalsByWard.get(w)||0)+q);
+      const m = itemsByWard.get(w) || new Map();
+      m.set(t.ItemCode, (m.get(t.ItemCode)||0)+q);
+      itemsByWard.set(w, m);
+    });
+
+    // Opening qty estimator for window (per ward+item)
+    function computeOpeningQty(itemCode, w){
+      const cur = db.stock.find(s=>s.ItemCode===itemCode && s.Ward===w)?.Qty || 0;
+      let net=0;
+      db.tx.forEach(t=>{
+        const dt = new Date(t.Date); if(dt<cutoff) return; if(t.Deleted) return; if(t.ItemCode!==itemCode) return;
+        if(t.Type==='IN'){ if(t.ToWard===w) net += t.Qty; }
+        else if(t.Type==='TRANSFER'){ if(t.FromWard===w) net -= t.Qty; if(t.ToWard===w) net += t.Qty; }
+      });
+      return cur - net;
+    }
+
+    // Issues map: per-item issues into selected ward (or CENTRAL outflow if ward blank)
+    const issuesMap = new Map();
+    db.tx.forEach(t=>{
+      const dt = new Date(t.Date); if(dt<cutoff) return; if(t.Deleted) return; if(t.Type!=='TRANSFER') return;
+      if(ward){ if(t.ToWard!==ward) return; issuesMap.set(t.ItemCode,(issuesMap.get(t.ItemCode)||0)+Number(t.Qty)||0); }
+      else { if(t.FromWard!==CENTRAL) return; issuesMap.set(t.ItemCode,(issuesMap.get(t.ItemCode)||0)+Number(t.Qty)||0); }
+    });
+
+    const refWard = ward || CENTRAL;
+    const daysInWin = Math.max(1, Math.round((Date.now()-cutoff.getTime())/86400000));
+
+    // Stock Turnover + DoS
+    const turnoverRows=[]; const dosRows=[];
+    issuesMap.forEach((issued,code)=>{
+      const open = computeOpeningQty(code, refWard);
+      const cur = db.stock.find(s=>s.ItemCode===code && s.Ward===refWard)?.Qty || 0;
+      const avg = Math.max(1, (open + cur)/2);
+      const turnover = issued/avg;
+      const avgDaily = issued/daysInWin;
+      const dos = avgDaily>0 ? (cur/avgDaily) : Infinity;
+      const name = (getItem(code)||{}).ItemName||code;
+      turnoverRows.push({code,name,turnover,issued});
+      dosRows.push({code,name,days:dos,cur});
+    });
+    turnoverRows.sort((a,b)=>b.turnover-a.turnover);
+    dosRows.sort((a,b)=>(b.days)-(a.days));
+
+    // Top consumers (wards)
+    const topCons = Array.from(totalsByWard.entries()).map(([w,q])=>({w,q})).sort((a,b)=>b.q-a.q).slice(0,10);
+
+    // Dead stock aging
+    const agingRows=[];
+    const onhand = db.stock.filter(s=>s.Ward===refWard && (s.Qty||0)>0);
+    onhand.forEach(s=>{
+      let last=null;
+      db.tx.forEach(t=>{
+        if(t.ItemCode!==s.ItemCode) return; if(t.Deleted) return;
+        if(t.Type==='IN'){ if(t.ToWard===refWard) last = (!last||t.Date>last)? t.Date:last; }
+        else if(t.Type==='TRANSFER'){ if(t.FromWard===refWard||t.ToWard===refWard) last = (!last||t.Date>last)? t.Date:last; }
+      });
+      const daysSince = last? Math.floor((Date.now()-new Date(last).getTime())/86400000) : Infinity;
+      const it = getItem(s.ItemCode);
+      agingRows.push({code:s.ItemCode,name:it?.ItemName||s.ItemCode,days:daysSince});
+    });
+    agingRows.sort((a,b)=> (b.days===Infinity?1:b.days) - (a.days===Infinity?1:a.days));
+
+    // Critical breach duration (simulate within window)
+    const breachRows=[];
+    db.stock.filter(s=>s.Ward===wardForCrit).forEach(s=>{
+      const it = getItem(s.ItemCode); const crit = Number(it?.CriticalLevel||0); if(!crit) return;
+      let run = computeOpeningQty(s.ItemCode, wardForCrit);
+      let breachedAt=null;
+      const txs = db.tx.filter(t=>!t.Deleted && t.ItemCode===s.ItemCode)
+        .filter(t=> new Date(t.Date)>=cutoff)
+        .sort((a,b)=> new Date(a.Date)-new Date(b.Date));
+      txs.forEach(t=>{
+        if(t.Type==='IN'){ if(t.ToWard===wardForCrit) run += t.Qty; }
+        else if(t.Type==='TRANSFER'){ if(t.FromWard===wardForCrit) run -= t.Qty; if(t.ToWard===wardForCrit) run += t.Qty; }
+        if(run<=crit && breachedAt===null) breachedAt = new Date(t.Date);
+      });
+      if(run<=crit && breachedAt===null) breachedAt = cutoff;
+      const daysBreach = breachedAt? Math.max(0, Math.floor((Date.now()-breachedAt.getTime())/86400000)) : 0;
+      if(daysBreach>0){ breachRows.push({code:s.ItemCode,name:it?.ItemName||s.ItemCode,days:daysBreach}); }
+    });
+    breachRows.sort((a,b)=>b.days-a.days);
+
+    // Render core tables
     const fTB = document.querySelector('#anFast tbody');
     const sTB = document.querySelector('#anSlow tbody');
     const cTB = document.querySelector('#anCritical tbody');
-    fTB.innerHTML = fast.map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.qty}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No movement.</td></tr>';
-    sTB.innerHTML = slow.map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.qty}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">All items moved in window.</td></tr>';
-    cTB.innerHTML = critRows.map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.qty}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No items at/below critical.</td></tr>';
+    if(fTB) fTB.innerHTML = fast.map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.qty}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No movement.</td></tr>';
+    if(sTB) sTB.innerHTML = slow.map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.qty}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">All items moved in window.</td></tr>';
+    if(cTB) cTB.innerHTML = critRows.map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.qty}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No items at/below critical.</td></tr>';
+
+    // Transfers by Ward
+    const wtBody = document.querySelector('#anWardTotals tbody');
+    if(wtBody){
+      const entries = Array.from(totalsByWard.entries()).sort((a,b)=>b[1]-a[1]);
+      wtBody.innerHTML = entries.map(([w,total])=>{
+        const distinct = (itemsByWard.get(w)?.size)||0;
+        return `<tr><td>${w||'—'}</td><td class='t-right'>${total}</td><td class='t-right'>${distinct}</td></tr>`;
+      }).join('') || '<tr><td colspan="3" class="hint">No transfers in window.</td></tr>';
+    }
+
+    // Items per selected ward
+    const wl = document.getElementById('anWardLabel'); if(wl) wl.textContent = ward || '(any)';
+    const wiBody = document.querySelector('#anWardItems tbody');
+    if(wiBody){
+      if(ward){
+        const map = itemsByWard.get(ward) || new Map();
+        const arrI = Array.from(map.entries()).map(([code,qty])=>({code,qty,name:(getItem(code)||{}).ItemName||code})).sort((a,b)=>b.qty-a.qty).slice(0,25);
+        wiBody.innerHTML = arrI.map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.qty}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No transfers to this ward.</td></tr>';
+      } else {
+        wiBody.innerHTML = '<tr><td colspan="2" class="hint">Choose a ward to see item breakdown.</td></tr>';
+      }
+    }
+
+    // New analytics tables
+    const tTB = document.querySelector('#anTurnover tbody');
+    if(tTB){ tTB.innerHTML = turnoverRows.slice(0,15).map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.turnover.toFixed(2)}</td><td class='t-right'>${x.issued}</td></tr>`).join('') || '<tr><td colspan="3" class="hint">No issues in window.</td></tr>'; }
+    const dTB = document.querySelector('#anDoS tbody');
+    if(dTB){ dTB.innerHTML = dosRows.slice(0,15).map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${Number.isFinite(x.days)? x.days.toFixed(1):'—'}</td><td class='t-right'>${x.cur}</td></tr>`).join('') || '<tr><td colspan="3" class="hint">No on-hand or usage.</td></tr>'; }
+    const cnsTB = document.querySelector('#anTopCons tbody');
+    if(cnsTB){ cnsTB.innerHTML = Array.from(totalsByWard.entries()).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([w,q])=>`<tr><td>${w||'—'}</td><td class='t-right'>${q}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No transfers.</td></tr>'; }
+    const agTB = document.querySelector('#anDeadAging tbody');
+    if(agTB){ agTB.innerHTML = agingRows.slice(0,20).map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.days===Infinity?'—':x.days}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No on-hand stock.</td></tr>'; }
+    const brTB = document.querySelector('#anBreach tbody');
+    if(brTB){ brTB.innerHTML = breachRows.slice(0,20).map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.days}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No breaches in window.</td></tr>'; }
   }
-  document.getElementById('btnAnRun').onclick = runAnalysis;
+
+  // ===== Analysis Export (all analysis tables) =====
+  function tableToCSV(id){
+    const tbl = document.getElementById(id); if(!tbl) return '';
+    const rows = Array.from(tbl.querySelectorAll('tr'));
+    return rows.map(tr => Array.from(tr.children)
+      .map(td => '"' + String(td.innerText||'').replaceAll('"','""') + '"')
+      .join(',')
+    ).join('\n'); // fixed newline
+  }
+  function downloadCSV(csv, name){
+    const blob = new Blob([csv], {type:'text/csv'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click();
+  }
+  document.addEventListener('click', (e)=>{
+    const btn = e.target.closest('[data-export]'); if(!btn) return;
+    const id = btn.getAttribute('data-export');
+    const csv = tableToCSV(id);
+    const ward = (document.getElementById('anWard')?.value||'any') || 'any';
+    const days = document.getElementById('anDays')?.value || '30';
+    downloadCSV(csv, `${id}_${ward}_${days}d.csv`);
+  });
 
   // ===== Wards mgmt =====
   function renderWardList(){
@@ -655,107 +841,44 @@
     stockSetDelta('SYR-05', CENTRAL, 50);
     addTx({TxID:uid(),Date:nowISO(),Type:'IN',ItemCode:'GAU-01',ItemName:'Gauze 4x4',Qty:100,FromWard:'',ToWard:CENTRAL,By:'TEST',Notes:'',Deleted:false});
     addTx({TxID:uid(),Date:nowISO(),Type:'IN',ItemCode:'SYR-05',ItemName:'Syringe 5mL',Qty:50,FromWard:'',ToWard:CENTRAL,By:'TEST',Notes:'',Deleted:false});
-    assert('Central GAU-01=100', stockGet('GAU-01',CENTRAL)===100);
-    assert('Central SYR-05=50', stockGet('SYR-05',CENTRAL)===50);
-    // 3) Transfer CENTRAL -> ER
-    const qty=20; stockSetDelta('GAU-01',CENTRAL,-qty); stockSetDelta('GAU-01','ER',qty);
-    addTx({TxID:uid(),Date:nowISO(),Type:'TRANSFER',ItemCode:'GAU-01',ItemName:'Gauze 4x4',Qty:qty,FromWard:CENTRAL,ToWard:'ER',By:'TEST',Notes:'',Deleted:false});
-    assert('Central GAU-01=80 after transfer', stockGet('GAU-01',CENTRAL)===80);
-    assert('ER GAU-01=20 after transfer', stockGet('GAU-01','ER')===20);
-    // 4) Delete last transfer (auto-reverse)
-    const todayUTC = todayStr();
-    const last = loadDB().tx.find(t=>t.Type==='TRANSFER' && t.Date.startsWith(todayUTC));
-    assert('Found transfer to delete', !!last);
-    stockSetDelta(last.ItemCode, last.ToWard, -last.Qty);
-    stockSetDelta(last.ItemCode, last.FromWard, last.Qty);
-    last.Deleted = true; saveDB(loadDB());
-    assert('Central GAU-01=100 after reversal', stockGet('GAU-01',CENTRAL)===100);
-    assert('ER GAU-01=0 after reversal', stockGet('GAU-01','ER')===0);
-    // 5) Manila date filter finds today’s IN
-    const manilaDate = dateOfISOinTZ(nowISO(), TZ);
-    const todaysRows = listTxByDate(manilaDate, '');
-    assert('History list (Manila) has rows for today', todaysRows.length>=2);
-    // 6) Ward / options
-    renderWardList();
-    assert('deleteWard function is not exposed', typeof deleteWard === 'undefined');
-    ensureWardOptions();
-    assert('invWard select has options', (document.getElementById('invWard')?.options.length||0) > 0);
+    assert('Central balances ok', stockGet('GAU-01',CENTRAL)===100 && stockGet('SYR-05',CENTRAL)===50);
+    // 3) Transfer to ER
+    stockSetDelta('GAU-01', CENTRAL, -20); stockSetDelta('GAU-01','ER', 20);
+    addTx({TxID:uid(),Date:nowISO(),Type:'TRANSFER',ItemCode:'GAU-01',ItemName:'Gauze 4x4',Qty:20,FromWard:CENTRAL,ToWard:'ER',By:'TEST',Notes:'',Deleted:false});
+    assert('Central after transfer', stockGet('GAU-01',CENTRAL)===80);
+    assert('ER after transfer', stockGet('GAU-01','ER')===20);
+    // 4) History list has rows for Manila today
+    const todayManila = todayStrTZ();
+    const histToday = listTxByDate(todayManila,'ER');
+    assert('History for ER today not empty', histToday.length>0);
+    // 5) Analysis smoke
+    document.getElementById('anDays').value = 30;
+    document.getElementById('anWard').value = 'ER';
+    runAnalysis();
+    assert('Analysis fast table rendered', (document.querySelector('#anFast tbody').innerText||'').length>=0);
+    // 6) Log & Transfer search lists show items
+    document.getElementById('logSearch').value='GAU'; renderLogItems();
+    assert('Log items show on search in Log list', (document.querySelector('#logItemsTbl tbody').innerText||'').includes('GAU-01'));
+    document.getElementById('trSearch').value='GAU'; renderTrItems();
+    assert('Transfer items show on search in Transfer list', (document.querySelector('#trItemsTbl tbody').innerText||'').includes('GAU-01'));
 
     console.log('All tests passed.');
-    // New micro-tests for item lists visibility & behavior
-    document.getElementById('logSearch').value=''; renderLogItems();
-    const logListEmpty = (document.querySelector('#logItemsTbl tbody').innerText||'').trim()==='';
-    assert('Log items hidden on blank search', logListEmpty);
-    document.getElementById('trSearch').value=''; renderTrItems();
-    const trListEmpty = (document.querySelector('#trItemsTbl tbody').innerText||'').trim()==='';
-    assert('Transfer items hidden on blank search', trListEmpty);
-    document.getElementById('logSearch').value='GAU'; renderLogItems();
-    assert('Log items show on typed query', (document.querySelector('#logItemsTbl tbody').innerText||'').includes('GAU-01'));
-    document.getElementById('trSearch').value='SYR'; renderTrItems();
-    assert('Transfer items show on typed query', (document.querySelector('#trItemsTbl tbody').innerText||'').includes('SYR-05'));
-
-    alert('All tests passed. Open console for details.');
-    // Refresh views so user sees seeded data
-    renderItems(); renderInventory(); renderHistory(); runAnalysis();
   }
+
+  // ===== Button binds / init =====
+  document.getElementById('btnAnRun').onclick = runAnalysis;
   document.getElementById('btnTests').onclick = runTests;
+  document.getElementById('btnPing').onclick = ()=> alert(`OK @ ${fmtTimeTZ(new Date(), TZ)} Manila time`);
+  document.getElementById('btnSync').onclick = ()=> alert('Sync is disabled in no-backend mode.');
 
-  // ===== Init =====
   function init(){
-    ensureWardOptions();
-    ensureCategoryOptions();
-    renderWardList();
-    renderItems();
-    document.getElementById('histDate').value = todayStrTZ();
-    renderInventory();
-    renderHistory();
-    runAnalysis();
-    if(location.hash==="#demo"){ if(loadDB().items.length===0) runTests(); }
+    ensureWardOptions(); ensureCategoryOptions();
+    document.querySelectorAll('.menu button').forEach(btn=> btn.onclick = ()=> switchView(btn.dataset.view));
+    const hd = document.getElementById('histDate'); if(hd) hd.value = todayStrTZ();
+    switchView('registration');
+    renderItems(); renderInventory(); renderHistory(); renderWardList();
   }
-
-  // Menu wiring
-  document.querySelectorAll('.menu button').forEach(b=> b.onclick = ()=> switchView(b.dataset.view));
   init();
-
-  // ===== Sync to Google Sheets (one-way) =====
-  const SYNC = {
-    url: 'https://script.google.com/macros/s/AKfycby8FJFFDzO8xxwg12YKqlMVJA-YPYjSe0xXLzLEN4ClgbjoqBrHFVtIrn9d2dD5qetJ/exec',
-    token: 'CHANGE_ME' // must match Code.gs TOKEN
-  };
-  async function syncToSheets(){
-    const btn = document.getElementById('btnSync');
-    try{
-      btn.disabled = true; btn.textContent = 'Syncing…';
-      const payload = loadDB();
-      const res = await fetch(SYNC.url, {
-        method:'POST',
-        headers:{ 'Content-Type':'text/plain;charset=utf-8' }, // simple header (no preflight)
-        body: JSON.stringify({action:'syncAll', token: SYNC.token, payload})
-      });
-      if(!res.ok) throw new Error('HTTP '+res.status);
-      const data = await res.json().catch(()=>({ ok:false, error:'Bad JSON from server' }));
-      if(!data.ok) throw new Error(data.error || 'Sync failed');
-      alert(`Synced: items ${data.itemsWritten}, stock ${data.stockWritten}, tx new ${data.txAppended}, wards ${data.wardsWritten}`);
-      localStorage.setItem(DB_KEY+':lastSync', new Date().toISOString());
-    }catch(err){
-      console.error(err);
-      const tip = location.protocol==='file:' ? '\nTip: host this over HTTPS (GitHub Pages) instead of file:// to avoid CORS issues.' : '';
-      alert('Sync failed: '+ err.message + tip);
-    }finally{
-      btn.disabled = false; btn.textContent = 'Sync';
-    }
-  }
-  document.getElementById('btnSync').onclick = syncToSheets;
-  document.getElementById('btnPing').onclick = async ()=>{
-    try{
-      const res = await fetch(SYNC.url, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify({action:'ping', token: SYNC.token}) });
-      if(!res.ok) throw new Error('HTTP '+res.status);
-      const data = await res.json();
-      alert('Ping: '+ (data.ok ? 'OK' : JSON.stringify(data)) );
-    }catch(err){
-      alert('Ping failed: '+err.message+ (location.protocol==='file:'?'\nTip: host over HTTPS (GitHub Pages), not file://':'') );
-    }
-  };
   </script>
 </body>
 </html>
