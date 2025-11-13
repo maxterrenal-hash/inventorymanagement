@@ -1,3 +1,11 @@
+// Auto-pick up saved session
+window.state = window.state || {};
+state.token = state.token || sessionStorage.getItem('token') || '';
+state.role = state.role || sessionStorage.getItem('role') || '';
+state.wardCode = state.wardCode || sessionStorage.getItem('wardCode') || '';
+state.username = state.username || sessionStorage.getItem('username') || '';
+
+
 // --- API WRAPPER ---
 const API_URL = window.APP_CONFIG.API_URL;
 async function api(action, payload={}, withAuth=true){
