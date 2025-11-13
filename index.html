@@ -55,10 +55,13 @@
     .mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}
     .hidden{display:none}
 
-    .scrollbox{max-height:360px;overflow:auto;border:1px solid var(--border);border-radius:12px}
-    button:focus-visible,.btn:focus-visible{outline:3px solid rgba(0,154,62,.35);outline-offset:2px}
+    /* Scrollable boxes */
+    .scrollbox{max-height:700px;overflow:auto;border:1px solid var(--border);border-radius:12px}
+    /* ~20 visible rows (approx 35-38px row height + header). Adjust if needed: */
+    .scrollbox.inventory{max-height:840px}
     .scrollbox table{margin:0}
-    .scrollbox thead th{position:sticky;top:0;z-index:1}
+    .scrollbox thead th{position:sticky;top:0;z-index:1;background:#fafafa}
+    button:focus-visible,.btn:focus-visible{outline:3px solid rgba(0,154,62,.35);outline-offset:2px}
   </style>
 </head>
 <body>
@@ -181,16 +184,18 @@
         </div>
       </section>
 
-      <!-- Inventory -->
+      <!-- Inventory (CENTRAL only) -->
       <section id="view-inventory" class="card hidden">
-        <h2>Inventory</h2>
+        <h2>Inventory — CENTRAL</h2>
         <div class="row mt12">
-          <div class="col"><label>Ward</label><select id="invWard"></select></div>
           <div class="col"><label>Category</label><select id="invCat"></select></div>
           <div class="col"><label>Search</label><input id="invSearch" placeholder="Filter..."/></div>
         </div>
-        <div class="mt12">
-          <table id="invTbl"><thead><tr><th>Code</th><th>Name</th><th>Brand</th><th>Category</th><th>Ward</th><th class="t-right">Qty</th><th>Status</th></tr></thead><tbody></tbody></table>
+        <div class="mt12 scrollbox inventory">
+          <table id="invTbl">
+            <thead><tr><th>Code</th><th>Name</th><th>Brand</th><th>Category</th><th class="t-right">Qty</th><th>Status</th></tr></thead>
+            <tbody></tbody>
+          </table>
         </div>
       </section>
 
@@ -202,6 +207,7 @@
             <label class="hint">Manage Wards: </label>
             <input id="wardNew" placeholder="Add ward name" style="width:180px"/>
             <button class="btn" id="btnWardAdd">Add Ward</button>
+            <button class="btn" id="btnClearHist" title="Clear ALL transactions">Clear All History</button>
           </div>
         </div>
         <div class="row mt12">
@@ -221,12 +227,13 @@
 
       <!-- Analysis -->
       <section id="view-analysis" class="card hidden">
-        <h2>Data Analysis</h2>
+        <h2>Data Analysis — CENTRAL</h2>
         <div class="row mt12">
-          <div class="col"><label>Lookback (days)</label><input id="anDays" type="number" min="1" value="30"/></div>
-          <div class="col"><label>Ward</label><select id="anWard"></select></div>
+          <div class="col"><label>From</label><input id="anFrom" type="date"/></div>
+          <div class="col"><label>To</label><input id="anTo" type="date"/></div>
           <div class="col actions" style="align-items:flex-end"><button class="btn" id="btnAnRun">Run</button></div>
         </div>
+
         <div class="mt12 row">
           <div class="col card">
             <h3>Fast Moving</h3>
@@ -241,34 +248,19 @@
             <table id="anCritical"><thead><tr><th>Item</th><th class="t-right">Qty</th></tr></thead><tbody></tbody></table>
           </div>
           <div class="col card">
-            <h3>Transfers by Ward</h3>
-            <table id="anWardTotals"><thead><tr><th>Ward</th><th class="t-right">Total Qty</th><th class="t-right">Distinct Items</th></tr></thead><tbody></tbody></table>
-          </div>
-          <div class="col card">
-            <h3>Items Transferred → <span id="anWardLabel">(any)</span></h3>
-            <table id="anWardItems"><thead><tr><th>Item</th><th class="t-right">Qty</th></tr></thead><tbody></tbody></table>
-          </div>
-        </div>
-        <div class="mt12 row">
-          <div class="col card">
-            <h3>Stock Turnover</h3>
-            <table id="anTurnover"><thead><tr><th>Item</th><th class="t-right">Turnover</th><th class="t-right">Issues</th></tr></thead><tbody></tbody></table>
-          </div>
-          <div class="col card">
-            <h3>Days of Supply</h3>
-            <table id="anDoS"><thead><tr><th>Item</th><th class="t-right">Days</th><th class="t-right">On-hand</th></tr></thead><tbody></tbody></table>
-          </div>
-          <div class="col card">
-            <h3>Top Consumers (wards)</h3>
-            <table id="anTopCons"><thead><tr><th>Ward</th><th class="t-right">Qty</th></tr></thead><tbody></tbody></table>
-          </div>
-          <div class="col card">
             <h3>Dead Stock Aging</h3>
             <table id="anDeadAging"><thead><tr><th>Item</th><th class="t-right">Days Since Move</th></tr></thead><tbody></tbody></table>
           </div>
           <div class="col card">
             <h3>Critical Breach Duration</h3>
             <table id="anBreach"><thead><tr><th>Item</th><th class="t-right">Days Below Crit</th></tr></thead><tbody></tbody></table>
+          </div>
+        </div>
+
+        <div class="mt12 row">
+          <div class="col card">
+            <h3>Transfers by Ward</h3>
+            <table id="anWardTotals"><thead><tr><th>Ward</th><th class="t-right">Total Qty</th><th class="t-right">Distinct Items</th></tr></thead><tbody></tbody></table>
           </div>
         </div>
       </section>
@@ -337,27 +329,37 @@
     return db.tx.filter(t=> dateOfISOinTZ(t.Date, TZ)===dateStr && (!wardFilter || t.FromWard===wardFilter || t.ToWard===wardFilter));
   }
 
+  // ===== Ward options (for transfer/history only) =====
   function ensureWardOptions(){
     const db = loadDB();
     const wards = Array.from(new Set([CENTRAL, ...db.wards]));
-    const sels = [document.getElementById('trWard'), document.getElementById('invWard'), document.getElementById('histWard'), document.getElementById('anWard')];
+    const sels = [document.getElementById('trWard'), document.getElementById('histWard')];
     sels.forEach(sel=>{
       if(!sel) return;
       sel.innerHTML='';
-      const isInv = sel.id==='invWard';
-      const opt = isInv? new Option('ALL','ALL') : new Option('(any)','');
-      sel.appendChild(opt);
+      const opt = sel.id==='histWard' ? new Option('(any)','') : null;
+      if(opt) sel.appendChild(opt);
       wards.forEach(w=> sel.appendChild(new Option(w,w)));
-      if(isInv) sel.value='ALL';
     });
   }
+
+  // ===== Category options (CENTRAL only) =====
   function ensureCategoryOptions(){
     const sel = document.getElementById('invCat');
     if(!sel) return;
-    const cats = Array.from(new Set(loadDB().items.map(it => (it.Category||'').trim()).filter(Boolean))).sort();
+    const db = loadDB();
+    const centralCodes = new Set(db.stock.filter(s=>s.Ward===CENTRAL && (s.Qty||0)>=0).map(s=>s.ItemCode));
+    const cats = new Set();
+    db.items.forEach(it=>{
+      if(centralCodes.has(it.ItemCode)){
+        const c = (it.Category||'').trim();
+        if(c) cats.add(c);
+      }
+    });
+    const arr = Array.from(cats).sort();
     sel.innerHTML = '';
     sel.appendChild(new Option('ALL','ALL'));
-    cats.forEach(c => sel.appendChild(new Option(c,c)));
+    arr.forEach(c => sel.appendChild(new Option(c,c)));
     sel.value = 'ALL';
   }
 
@@ -370,9 +372,9 @@
       if(btn) btn.classList.toggle('active', v===key);
       if(sec) sec.classList.toggle('hidden', v!==key);
     });
-    if(key==='inventory') renderInventory();
+    if(key==='inventory'){ ensureCategoryOptions(); renderInventory(); }
     if(key==='history'){ const d = document.getElementById('histDate'); if(d) d.value = todayStrTZ(); renderHistory(); }
-    if(key==='analysis') runAnalysis();
+    if(key==='analysis'){ setDefaultAnalysisRange(); runAnalysis(); }
     if(key==='registration') renderItems();
     if(key==='log') renderLogItems();
     if(key==='transfer') renderTrItems();
@@ -461,7 +463,7 @@
     });
     logCart.length=0; renderLogCart();
     document.getElementById('logHint').textContent='Logged.';
-    renderInventory();
+    ensureCategoryOptions(); renderInventory();
   };
 
   // ===== Transfer =====
@@ -515,19 +517,20 @@
     });
     trCart.length=0; renderTrCart();
     document.getElementById('trHint').textContent='Transferred.';
-    renderInventory();
+    ensureCategoryOptions(); renderInventory();
   };
 
-  // ===== Inventory =====
+  // ===== Inventory (CENTRAL only) =====
   function renderInventory(){
-    ensureWardOptions(); ensureCategoryOptions();
-    const ward = document.getElementById('invWard').value; // ALL or ward
+    ensureCategoryOptions();
     const cat = (document.getElementById('invCat') && document.getElementById('invCat').value) || 'ALL';
     const q = (document.getElementById('invSearch').value||'').toLowerCase();
     const db = loadDB();
-    let rows = [];
-    const filtStock = db.stock.filter(s=> ward==='ALL' ? true : s.Ward===ward);
-    for(const s of filtStock){
+    const rows = [];
+
+    // CENTRAL stock rows
+    const centralStock = db.stock.filter(s=> s.Ward===CENTRAL);
+    for(const s of centralStock){
       const it = getItem(s.ItemCode);
       if(!it) continue;
       if(cat!=='ALL' && (it.Category||'') !== cat) continue;
@@ -535,23 +538,13 @@
       if(q && !text.includes(q)) continue;
       const crit = Number(it.CriticalLevel||0);
       const status = s.Qty<=0? '<span class="pill bad">Out</span>' : (crit && s.Qty<=crit ? '<span class="pill warn">Critical</span>' : '<span class="pill">OK</span>');
-      rows.push(`<tr><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td>${it.Category||''}</td><td>${s.Ward}</td><td class="t-right">${s.Qty}</td><td>${status}</td></tr>`);
+      rows.push(`<tr><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td>${it.Category||''}</td><td class="t-right">${s.Qty}</td><td>${status}</td></tr>`);
     }
-    // Include zero rows when searching or category filtered
-    if(q || cat!=='ALL'){
-      const codesInRows = new Set(rows.map(r => r.match(/<td>([^<]*)<\/td>/)?.[1]).filter(Boolean));
-      db.items.forEach(it=>{
-        if(cat!=='ALL' && (it.Category||'') !== cat) return;
-        const text = `${it.ItemCode} ${it.ItemName} ${it.Brand||''} ${it.Category||''}`.toLowerCase();
-        if(q && !text.includes(q)) return;
-        if(!codesInRows.has(it.ItemCode)) rows.push(`<tr><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td>${it.Category||''}</td><td>${ward==='ALL'?'—':ward}</td><td class="t-right">0</td><td><span class='pill bad'>Out</span></td></tr>`);
-      })
-    }
-    document.querySelector('#invTbl tbody').innerHTML = rows.join('') || '<tr><td colspan="7" class="hint">No records.</td></tr>';
+
+    document.querySelector('#invTbl tbody').innerHTML = rows.join('') || '<tr><td colspan="6" class="hint">No records.</td></tr>';
   }
-  document.getElementById('invSearch').oninput = renderInventory;
-  document.getElementById('invWard').onchange = renderInventory;
   const _invCatEl = document.getElementById('invCat'); if(_invCatEl) _invCatEl.onchange = renderInventory;
+  const _invSearchEl = document.getElementById('invSearch'); if(_invSearchEl) _invSearchEl.oninput = renderInventory;
 
   // ===== History =====
   function renderHistory(){
@@ -570,6 +563,18 @@
   document.getElementById('histWard').onchange = renderHistory;
   document.getElementById('btnHistRefresh').onclick = renderHistory;
 
+  // Clear ALL history (password-protected)
+  document.getElementById('btnClearHist').onclick = ()=>{
+    const pw = prompt('Enter password to clear ALL transactions:');
+    if(pw!=='osmak123'){ alert('Incorrect password.'); return; }
+    if(!confirm('This will permanently delete ALL transactions. Continue?')) return;
+    const db = loadDB();
+    db.tx = [];
+    saveDB(db);
+    renderHistory();
+    alert('All transactions cleared.');
+  };
+
   window.delTx = (txid)=>{
     const db = loadDB();
     const d = document.getElementById('histDate').value || todayStrTZ();
@@ -586,7 +591,7 @@
     }
     t.Deleted = true; t.Notes = (t.Notes||'') + ' [deleted]';
     db.tx[ix] = t; saveDB(db);
-    renderHistory(); renderInventory();
+    renderHistory(); ensureCategoryOptions(); renderInventory();
   };
 
   // Export CSV (History only)
@@ -602,43 +607,121 @@
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `transactions_${d}.csv`; a.click();
   };
 
-  // ===== Analysis =====
+  // ===== Analysis (CENTRAL only; date range) =====
+  function setDefaultAnalysisRange(){
+    const to = document.getElementById('anTo');
+    const from = document.getElementById('anFrom');
+    if(to && !to.value) to.value = todayStrTZ();
+    if(from && !from.value){
+      // default to last 30 days
+      const d = new Date(); d.setDate(d.getDate()-30);
+      from.value = fmtDateTZ(d);
+    }
+  }
+  function inRange(iso, start, end){
+    const d = new Date(iso);
+    const s = start ? new Date(start+'T00:00:00') : new Date('1970-01-01T00:00:00');
+    const e = end ? new Date(end+'T23:59:59') : new Date('2999-12-31T23:59:59');
+    return d>=s && d<=e;
+  }
+
   function runAnalysis(){
-    ensureWardOptions();
-    const days = Number(document.getElementById('anDays').value||30);
-    const ward = document.getElementById('anWard').value; // '' = any
-    const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-days);
+    setDefaultAnalysisRange();
+    const start = document.getElementById('anFrom').value;
+    const end = document.getElementById('anTo').value;
+
     const db = loadDB();
 
-    // Movement (fast/slow)
-    const mv = new Map();
+    // Movement affecting CENTRAL:
+    //   IN: ToWard === CENTRAL  (stock in)
+    //   TRANSFER: FromWard === CENTRAL (issues to wards)
+    const mv = new Map(); // ItemCode -> qty
     db.tx.forEach(t=>{
-      const dt = new Date(t.Date);
-      if(dt<cutoff) return; if(ward && !(t.FromWard===ward || t.ToWard===ward)) return; if(t.Deleted) return;
-      const delta = Math.abs(Number(t.Qty)||0);
-      mv.set(t.ItemCode, (mv.get(t.ItemCode)||0)+delta);
+      if(t.Deleted) return;
+      if(!inRange(t.Date, start, end)) return;
+      if(t.Type==='IN' && t.ToWard===CENTRAL){
+        mv.set(t.ItemCode, (mv.get(t.ItemCode)||0) + Number(t.Qty||0));
+      } else if(t.Type==='TRANSFER' && t.FromWard===CENTRAL){
+        mv.set(t.ItemCode, (mv.get(t.ItemCode)||0) + Number(t.Qty||0));
+      }
     });
-    const items = db.items;
-    const arr = Array.from(mv.entries()).map(([code,qty])=>({code,qty,name:(getItem(code)||{}).ItemName||code}));
-    const fast = arr.sort((a,b)=>b.qty-a.qty).slice(0,10);
-    const slow = items.filter(it=>!mv.has(it.ItemCode)).slice(0,10).map(it=>({code:it.ItemCode,name:it.ItemName,qty:0}));
 
-    // Critical for selected ward (or CENTRAL)
-    const wardForCrit = ward || CENTRAL;
+    const items = db.items;
+    const arr = Array.from(mv.entries())
+      .map(([code,qty])=>({code,qty,name:(getItem(code)||{}).ItemName||code}))
+      .sort((a,b)=>b.qty-a.qty);
+
+    // Fast / Slow
+    const fast = arr.slice(0,10);
+    const movedCodes = new Set(arr.map(x=>x.code));
+    const slow = items.filter(it=> !movedCodes.has(it.ItemCode))
+                      .slice(0,10)
+                      .map(it=>({code:it.ItemCode,name:it.ItemName,qty:0}));
+
+    // Critical stock in CENTRAL
     const critRows = db.stock
-      .filter(s=> s.Ward===wardForCrit)
+      .filter(s=> s.Ward===CENTRAL)
       .map(s=>{ const it = getItem(s.ItemCode); return {code:s.ItemCode,name:it?.ItemName||s.ItemCode, qty:s.Qty, crit:Number(it?.CriticalLevel||0)}; })
       .filter(r=> r.crit>0 && r.qty<=r.crit)
       .sort((a,b)=>a.qty-b.qty)
       .slice(0,20);
 
-    // Transfers by ward and items per ward
+    // Dead stock aging (last move involving CENTRAL)
+    const agingRows=[];
+    const onhand = db.stock.filter(s=>s.Ward===CENTRAL && (s.Qty||0)>0);
+    onhand.forEach(s=>{
+      let last=null;
+      db.tx.forEach(t=>{
+        if(t.ItemCode!==s.ItemCode) return; if(t.Deleted) return;
+        if(t.Type==='IN'){ if(t.ToWard===CENTRAL) last = (!last||t.Date>last)? t.Date:last; }
+        else if(t.Type==='TRANSFER'){ if(t.FromWard===CENTRAL || t.ToWard===CENTRAL) last = (!last||t.Date>last)? t.Date:last; }
+      });
+      const daysSince = last? Math.floor((Date.now()-new Date(last).getTime())/86400000) : Infinity;
+      const it = getItem(s.ItemCode);
+      agingRows.push({code:s.ItemCode,name:it?.ItemName||s.ItemCode,days:daysSince});
+    });
+    agingRows.sort((a,b)=> (b.days===Infinity?1:b.days) - (a.days===Infinity?1:a.days));
+
+    // Critical breach duration (CENTRAL)
+    const breachRows=[];
+    db.stock.filter(s=>s.Ward===CENTRAL).forEach(s=>{
+      const it = getItem(s.ItemCode); const crit = Number(it?.CriticalLevel||0); if(!crit) return;
+      // Reconstruct running balance across range for CENTRAL only
+      let balance = 0;
+      // approximate opening: current - net movements within range
+      const cur = s.Qty||0;
+      let net=0;
+      db.tx.forEach(t=>{
+        if(t.Deleted) return;
+        if(!inRange(t.Date, start, end)) return;
+        if(t.ItemCode!==s.ItemCode) return;
+        if(t.Type==='IN'){ if(t.ToWard===CENTRAL) net += Number(t.Qty||0); }
+        else if(t.Type==='TRANSFER'){ if(t.FromWard===CENTRAL) net -= Number(t.Qty||0); if(t.ToWard===CENTRAL) net += Number(t.Qty||0); }
+      });
+      balance = cur - net;
+
+      let breachedAt=null;
+      const txs = db.tx.filter(t=>!t.Deleted && t.ItemCode===s.ItemCode && inRange(t.Date,start,end))
+        .sort((a,b)=> new Date(a.Date)-new Date(b.Date));
+      txs.forEach(t=>{
+        if(t.Type==='IN'){ if(t.ToWard===CENTRAL) balance += Number(t.Qty||0); }
+        else if(t.Type==='TRANSFER'){ if(t.FromWard===CENTRAL) balance -= Number(t.Qty||0); if(t.ToWard===CENTRAL) balance += Number(t.Qty||0); }
+        if(balance<=crit && breachedAt===null) breachedAt = new Date(t.Date);
+      });
+      const rangeStart = start? new Date(start+'T00:00:00') : null;
+      if(balance<=crit && breachedAt===null && rangeStart) breachedAt = rangeStart;
+      const daysBreach = breachedAt? Math.max(0, Math.floor(( (end? new Date(end+'T23:59:59'): new Date()) - breachedAt )/86400000)) : 0;
+      if(daysBreach>0){ breachRows.push({code:s.ItemCode,name:it?.ItemName||s.ItemCode,days:daysBreach}); }
+    });
+    breachRows.sort((a,b)=>b.days-a.days);
+
+    // Transfers by Ward (CENTRAL → ward)
     const totalsByWard = new Map();
     const itemsByWard = new Map();
     db.tx.forEach(t=>{
-      const dt = new Date(t.Date);
-      if(dt<cutoff) return; if(t.Deleted) return; if(t.Type!=='TRANSFER') return;
-      if(ward && t.ToWard!==ward) return;
+      if(t.Deleted) return;
+      if(!inRange(t.Date, start, end)) return;
+      if(t.Type!=='TRANSFER' || t.FromWard!==CENTRAL) return;
       const w = t.ToWard || '';
       const q = Number(t.Qty)||0;
       totalsByWard.set(w, (totalsByWard.get(w)||0)+q);
@@ -647,123 +730,27 @@
       itemsByWard.set(w, m);
     });
 
-    // Opening qty estimator for window
-    function computeOpeningQty(itemCode, w){
-      const cur = db.stock.find(s=>s.ItemCode===itemCode && s.Ward===w)?.Qty || 0;
-      let net=0;
-      db.tx.forEach(t=>{
-        const dt = new Date(t.Date); if(dt<cutoff) return; if(t.Deleted) return; if(t.ItemCode!==itemCode) return;
-        if(t.Type==='IN'){ if(t.ToWard===w) net += t.Qty; }
-        else if(t.Type==='TRANSFER'){ if(t.FromWard===w) net -= t.Qty; if(t.ToWard===w) net += t.Qty; }
-      });
-      return cur - net;
-    }
-
-    // Issues map: per-item issues into selected ward (or CENTRAL outflow if ward blank)
-    const issuesMap = new Map();
-    db.tx.forEach(t=>{
-      const dt = new Date(t.Date); if(dt<cutoff) return; if(t.Deleted) return; if(t.Type!=='TRANSFER') return;
-      if(ward){ if(t.ToWard!==ward) return; issuesMap.set(t.ItemCode,(issuesMap.get(t.ItemCode)||0)+Number(t.Qty)||0); }
-      else { if(t.FromWard!==CENTRAL) return; issuesMap.set(t.ItemCode,(issuesMap.get(t.ItemCode)||0)+Number(t.Qty)||0); }
-    });
-
-    const refWard = ward || CENTRAL;
-    const daysInWin = Math.max(1, Math.round((Date.now()-cutoff.getTime())/86400000));
-
-    // Stock Turnover + DoS
-    const turnoverRows=[]; const dosRows=[];
-    issuesMap.forEach((issued,code)=>{
-      const open = computeOpeningQty(code, refWard);
-      const cur = db.stock.find(s=>s.ItemCode===code && s.Ward===refWard)?.Qty || 0;
-      const avg = Math.max(1, (open + cur)/2);
-      const turnover = issued/avg;
-      const avgDaily = issued/daysInWin;
-      const dos = avgDaily>0 ? (cur/avgDaily) : Infinity;
-      const name = (getItem(code)||{}).ItemName||code;
-      turnoverRows.push({code,name,turnover,issued});
-      dosRows.push({code,name,days:dos,cur});
-    });
-    turnoverRows.sort((a,b)=>b.turnover-a.turnover);
-    dosRows.sort((a,b)=>(b.days)-(a.days));
-
-    // Top consumers (wards)
-    const topCons = Array.from(totalsByWard.entries()).map(([w,q])=>({w,q})).sort((a,b)=>b.q-a.q).slice(0,10);
-
-    // Dead stock aging
-    const agingRows=[];
-    const onhand = db.stock.filter(s=>s.Ward===refWard && (s.Qty||0)>0);
-    onhand.forEach(s=>{
-      let last=null;
-      db.tx.forEach(t=>{
-        if(t.ItemCode!==s.ItemCode) return; if(t.Deleted) return;
-        if(t.Type==='IN'){ if(t.ToWard===refWard) last = (!last||t.Date>last)? t.Date:last; }
-        else if(t.Type==='TRANSFER'){ if(t.FromWard===refWard||t.ToWard===refWard) last = (!last||t.Date>last)? t.Date:last; }
-      });
-      const daysSince = last? Math.floor((Date.now()-new Date(last).getTime())/86400000) : Infinity;
-      const it = getItem(s.ItemCode);
-      agingRows.push({code:s.ItemCode,name:it?.ItemName||s.ItemCode,days:daysSince});
-    });
-    agingRows.sort((a,b)=> (b.days===Infinity?1:b.days) - (a.days===Infinity?1:a.days));
-
-    // Critical breach duration
-    const breachRows=[];
-    db.stock.filter(s=>s.Ward===wardForCrit).forEach(s=>{
-      const it = getItem(s.ItemCode); const crit = Number(it?.CriticalLevel||0); if(!crit) return;
-      let run = computeOpeningQty(s.ItemCode, wardForCrit);
-      let breachedAt=null;
-      const txs = db.tx.filter(t=>!t.Deleted && t.ItemCode===s.ItemCode)
-        .filter(t=> new Date(t.Date)>=cutoff)
-        .sort((a,b)=> new Date(a.Date)-new Date(b.Date));
-      txs.forEach(t=>{
-        if(t.Type==='IN'){ if(t.ToWard===wardForCrit) run += t.Qty; }
-        else if(t.Type==='TRANSFER'){ if(t.FromWard===wardForCrit) run -= t.Qty; if(t.ToWard===wardForCrit) run += t.Qty; }
-        if(run<=crit && breachedAt===null) breachedAt = new Date(t.Date);
-      });
-      if(run<=crit && breachedAt===null) breachedAt = cutoff;
-      const daysBreach = breachedAt? Math.max(0, Math.floor((Date.now()-breachedAt.getTime())/86400000)) : 0;
-      if(daysBreach>0){ breachRows.push({code:s.ItemCode,name:it?.ItemName||s.ItemCode,days:daysBreach}); }
-    });
-    breachRows.sort((a,b)=>b.days-a.days);
-
-    // Render
+    // Render tables
     const fTB = document.querySelector('#anFast tbody');
     const sTB = document.querySelector('#anSlow tbody');
     const cTB = document.querySelector('#anCritical tbody');
-    if(fTB) fTB.innerHTML = fast.map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.qty}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No movement.</td></tr>';
-    if(sTB) sTB.innerHTML = slow.map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.qty}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">All items moved in window.</td></tr>';
-    if(cTB) cTB.innerHTML = critRows.map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.qty}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No items at/below critical.</td></tr>';
-
+    const agTB = document.querySelector('#anDeadAging tbody');
+    const brTB = document.querySelector('#anBreach tbody');
     const wtBody = document.querySelector('#anWardTotals tbody');
+
+    if(fTB) fTB.innerHTML = fast.map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.qty}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No movement.</td></tr>';
+    if(sTB) sTB.innerHTML = slow.map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>0</td></tr>`).join('') || '<tr><td colspan="2" class="hint">All items moved in range.</td></tr>';
+    if(cTB) cTB.innerHTML = critRows.map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.qty}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No items at/below critical.</td></tr>';
+    if(agTB) agTB.innerHTML = agTB ? agingRows.slice(0,20).map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.days===Infinity?'—':x.days}</td></tr>`).join('') : '';
+    if(brTB) brTB.innerHTML = brTB ? breachRows.slice(0,20).map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.days}</td></tr>`).join('') : '';
+
     if(wtBody){
       const entries = Array.from(totalsByWard.entries()).sort((a,b)=>b[1]-a[1]);
       wtBody.innerHTML = entries.map(([w,total])=>{
         const distinct = (itemsByWard.get(w)?.size)||0;
         return `<tr><td>${w||'—'}</td><td class='t-right'>${total}</td><td class='t-right'>${distinct}</td></tr>`;
-      }).join('') || '<tr><td colspan="3" class="hint">No transfers in window.</td></tr>';
+      }).join('') || '<tr><td colspan="3" class="hint">No transfers in range.</td></tr>';
     }
-
-    const wl = document.getElementById('anWardLabel'); if(wl) wl.textContent = ward || '(any)';
-    const wiBody = document.querySelector('#anWardItems tbody');
-    if(wiBody){
-      if(ward){
-        const map = itemsByWard.get(ward) || new Map();
-        const arrI = Array.from(map.entries()).map(([code,qty])=>({code,qty,name:(getItem(code)||{}).ItemName||code})).sort((a,b)=>b.qty-a.qty).slice(0,25);
-        wiBody.innerHTML = arrI.map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.qty}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No transfers to this ward.</td></tr>';
-      } else {
-        wiBody.innerHTML = '<tr><td colspan="2" class="hint">Choose a ward to see item breakdown.</td></tr>';
-      }
-    }
-
-    const tTB = document.querySelector('#anTurnover tbody');
-    if(tTB){ tTB.innerHTML = turnoverRows.slice(0,15).map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.turnover.toFixed(2)}</td><td class='t-right'>${x.issued}</td></tr>`).join('') || '<tr><td colspan="3" class="hint">No issues in window.</td></tr>'; }
-    const dTB = document.querySelector('#anDoS tbody');
-    if(dTB){ dTB.innerHTML = dosRows.slice(0,15).map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${Number.isFinite(x.days)? x.days.toFixed(1):'—'}</td><td class='t-right'>${x.cur}</td></tr>`).join('') || '<tr><td colspan="3" class="hint">No on-hand or usage.</td></tr>'; }
-    const cnsTB = document.querySelector('#anTopCons tbody');
-    if(cnsTB){ cnsTB.innerHTML = Array.from(totalsByWard.entries()).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([w,q])=>`<tr><td>${w||'—'}</td><td class='t-right'>${q}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No transfers.</td></tr>'; }
-    const agTB = document.querySelector('#anDeadAging tbody');
-    if(agTB){ agTB.innerHTML = agingRows.slice(0,20).map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.days===Infinity?'—':x.days}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No on-hand stock.</td></tr>'; }
-    const brTB = document.querySelector('#anBreach tbody');
-    if(brTB){ brTB.innerHTML = breachRows.slice(0,20).map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.days}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No breaches in window.</td></tr>'; }
   }
 
   // ===== Wards mgmt (no pill list) =====
