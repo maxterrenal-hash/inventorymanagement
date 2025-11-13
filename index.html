@@ -6,7 +6,7 @@
   <title>Ospital ng Makati Inventory Management System (No‑Backend)</title>
   <style>
     :root{
-      --osmak: #009a3e; --osmak-d:#007530; --bg:#f7f7f7; --card:#ffffff; --txt:#111827; --muted:#6b7280; --border:#e5e7eb; --danger:#dc2626; --accent:#2563eb;
+      --osmak:#009a3e; --osmak-d:#007530; --bg:#f7f7f7; --card:#ffffff; --txt:#111827; --muted:#6b7280; --border:#e5e7eb; --danger:#dc2626; --accent:#2563eb;
     }
     *{box-sizing:border-box}
     body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial,sans-serif;background:var(--bg);color:var(--txt)}
@@ -15,7 +15,7 @@
     header h1{font-size:18px;margin:0;font-weight:600}
     header .sp{flex:1}
     header .mini{display:flex;gap:8px}
-    header button, .btn{border:1px solid var(--border);background:#fff;border-radius:10px;padding:8px 12px;cursor:pointer}
+    header button,.btn{border:1px solid var(--border);background:#fff;border-radius:10px;padding:8px 12px;cursor:pointer}
     header button:hover,.btn:hover{background:#f3f4f6}
 
     .layout{display:grid;grid-template-columns:260px 1fr;min-height:calc(100vh - 60px)}
@@ -43,7 +43,6 @@
     .pill.warn{border-color:#f59e0b;color:#92400e;background:#fffbeb}
     .pill.bad{border-color:#fecaca;color:#991b1b;background:#fef2f2}
 
-    .searchbox{display:flex;gap:8px;align-items:center}
     .suggest{position:relative}
     .sugg-list{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:10px;max-height:240px;overflow:auto;z-index:3}
     .sugg-item{padding:8px 10px;cursor:pointer}
@@ -65,6 +64,7 @@
     <div class="mini">
       <button id="btnBackup" title="Download backup JSON">Backup</button>
       <button id="btnRestore" title="Restore from JSON">Restore</button>
+      <button id="btnTests" title="Run self‑tests">Tests</button>
       <input id="restoreFile" type="file" accept="application/json" class="hidden" />
     </div>
   </header>
@@ -124,7 +124,10 @@
           <span class="hint" id="logHint"></span>
         </div>
         <div class="mt16">
-          <h3>Cart</h3>
+          <h3>Items</h3>
+          <table id="logItemsTbl"><thead><tr><th>Code</th><th>Name</th><th>Brand</th><th>Category</th></tr></thead><tbody></tbody></table>
+          <span class="hint">Click an item row to select it, then enter quantity and Add to Cart.</span>
+          <h3 class="mt16">Cart</h3>
           <table id="logCartTbl"><thead><tr><th>Code</th><th>Name</th><th class="t-right">Qty</th><th></th></tr></thead><tbody></tbody></table>
           <div class="actions mt12">
             <button class="btn" id="btnLogConfirm">Confirm</button>
@@ -248,16 +251,15 @@
     const name = (ItemName||'').trim();
     if(!name) throw new Error('Item Name required');
     const ix = db.items.findIndex(x=>x.ItemCode===code);
-    const rec = {ItemCode:code,ItemName:name,Brand:(Brand||'').trim(),Category:(Category||'').trim(),Remarks:(Remarks||'').trim(),CriticalLevel: Number(CriticalLevel||0), Active:true, CreatedAt: nowISO(), UpdatedAt: nowISO()};
-    if(ix>=0){ db.items[ix] = {...db.items[ix],...rec, CreatedAt: db.items[ix].CreatedAt, UpdatedAt: nowISO()}; }
+    const rec = {ItemCode:code,ItemName:name,Brand:(Brand||'').trim(),Category:(Category||'').trim(),Remarks:(Remarks||'').trim(),CriticalLevel:Number(CriticalLevel||0),Active:true,CreatedAt:nowISO(),UpdatedAt:nowISO()};
+    if(ix>=0){ db.items[ix] = {...db.items[ix],...rec,CreatedAt:db.items[ix].CreatedAt,UpdatedAt:nowISO()}; }
     else{ db.items.push(rec); }
-    saveDB(db);
-    return rec;
+    saveDB(db); return rec;
   }
   function findItemByQuery(q){
     const db = loadDB();
     const s = (q||'').trim().toLowerCase();
-    if(!s) return db.items.slice(0,20);
+    if(!s) return db.items.slice(0,50);
     return db.items.filter(it=>[it.ItemCode,it.ItemName,it.Brand,it.Category].some(v=> (v||'').toLowerCase().includes(s))).slice(0,50);
   }
   function getItem(code){ return loadDB().items.find(x=>x.ItemCode===code) }
@@ -289,14 +291,13 @@
     const wards = Array.from(new Set([CENTRAL, ...db.wards]));
     const sels = [document.getElementById('trWard'), document.getElementById('invWard'), document.getElementById('histWard'), document.getElementById('anWard')];
     sels.forEach(sel=>{
+      if(!sel) return;
       sel.innerHTML='';
-      const optAll = sel.id==='invWard'? new Option('ALL','ALL') : new Option('(any)','');
-      if(sel.id==='invWard') sel.appendChild(optAll); else sel.appendChild(optAll);
+      const isInv = sel.id==='invWard';
+      const opt = isInv? new Option('ALL','ALL') : new Option('(any)','');
+      sel.appendChild(opt);
       wards.forEach(w=> sel.appendChild(new Option(w,w)));
-      // defaults
-      if(sel.id==='invWard') sel.value='ALL';
-      if(sel.id==='anWard') sel.value='';
-      if(sel.id==='histWard') sel.value='';
+      if(isInv) sel.value='ALL';
     });
   }
 
@@ -304,18 +305,22 @@
   const views = ['registration','log','transfer','inventory','history','analysis'];
   function switchView(key){
     views.forEach(v=>{
-      document.querySelector(`[data-view="${v}"]`).classList.toggle('active', v===key);
-      document.getElementById(`view-${v}`).classList.toggle('hidden', v!==key);
+      const btn = document.querySelector(`.menu button[data-view="${v}"]`);
+      const sec = document.getElementById(`view-${v}`);
+      if(btn) btn.classList.toggle('active', v===key);
+      if(sec) sec.classList.toggle('hidden', v!==key);
     });
     if(key==='inventory') renderInventory();
-    if(key==='history') { document.getElementById('histDate').value = todayStr(); renderHistory(); }
+    if(key==='history'){ document.getElementById('histDate').value = todayStr(); renderHistory(); }
     if(key==='analysis') runAnalysis();
     if(key==='registration') renderItems();
+    if(key==='log') renderLogItems();
   }
 
   // ===== Registration =====
   function renderItems(){
     const tbody = document.querySelector('#itemsTable tbody');
+    if(!tbody) return;
     const items = loadDB().items.slice().sort((a,b)=>a.ItemName.localeCompare(b.ItemName));
     tbody.innerHTML = items.map(it=> `<tr><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td>${it.Category||''}</td><td class="t-right">${it.CriticalLevel||''}</td><td>${it.Remarks||''}</td></tr>`).join('');
   }
@@ -330,7 +335,7 @@
       const rec = upsertItem({ItemCode:code, ItemName:name, Brand:brand, Category:cat, Remarks:rem, CriticalLevel:crit});
       document.getElementById('regHint').textContent = `Saved ${rec.ItemCode}`;
       ['regCode','regName','regBrand','regCat','regRemarks','regCrit'].forEach(id=>document.getElementById(id).value='');
-      renderItems();
+      renderItems(); if(document.getElementById('logItemsTbl')) renderLogItems();
     }catch(e){ document.getElementById('regHint').textContent = e.message; }
   };
 
@@ -346,13 +351,20 @@
       list.classList.toggle('hidden', res.length===0);
       Array.from(list.children).forEach(div=> div.onclick = () => { onPick(div.dataset.code); list.classList.add('hidden'); });
     }
-    inp.oninput = refresh;
-    inp.onfocus = refresh;
+    inp.oninput = refresh; inp.onfocus = refresh;
     document.addEventListener('click', (e)=>{ if(!list.contains(e.target) && e.target!==inp) list.classList.add('hidden'); });
   }
 
   // ===== Log (Stock In) =====
   const logCart = []; // {code, qty}
+  function renderLogCart(){
+    const tb = document.querySelector('#logCartTbl tbody'); if(!tb) return;
+    tb.innerHTML = logCart.map((l,i)=>{
+      const it = getItem(l.code) || {ItemName:'?'};
+      return `<tr><td>${l.code}</td><td>${it.ItemName}</td><td class="t-right">${l.qty}</td><td><button class="btn" onclick="removeLog(${i})">×</button></td></tr>`
+    }).join('');
+  }
+  window.removeLog = (i)=>{ logCart.splice(i,1); renderLogCart(); };
   wireSuggest('logSearch','logSuggest',(code)=>{ document.getElementById('logSearch').value = code; });
   document.getElementById('btnLogAdd').onclick = ()=>{
     const code = (document.getElementById('logSearch').value||'').trim().toUpperCase();
@@ -365,21 +377,24 @@
     document.getElementById('logSearch').value=''; document.getElementById('logQty').value='';
     renderLogCart();
   };
-  function renderLogCart(){
-    const tb = document.querySelector('#logCartTbl tbody');
-    tb.innerHTML = logCart.map((l,i)=>{
-      const it = getItem(l.code) || {ItemName:'?'};
-      return `<tr><td>${l.code}</td><td>${it.ItemName}</td><td class="t-right">${l.qty}</td><td><button class="btn" onclick="removeLog(${i})">×</button></td></tr>`
-    }).join('');
+  function renderLogItems(){
+    const tb = document.querySelector('#logItemsTbl tbody'); if(!tb) return;
+    const q = document.getElementById('logSearch').value || '';
+    const list = findItemByQuery(q);
+    tb.innerHTML = (list.length? list.map(it=>
+      `<tr data-code="${it.ItemCode}"><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td>${it.Category||''}</td></tr>`
+    ).join('') : '<tr><td colspan="4" class="hint">No items yet. Register items first.</td></tr>');
+    Array.from(tb.querySelectorAll('tr[data-code]')).forEach(tr=>{
+      tr.onclick = ()=>{ document.getElementById('logSearch').value = tr.dataset.code; document.getElementById('logQty').focus(); };
+    });
   }
-  window.removeLog = (i)=>{ logCart.splice(i,1); renderLogCart(); };
+  (function(){ const el = document.getElementById('logSearch'); if(!el) return; el.addEventListener('input', renderLogItems); el.addEventListener('focus', renderLogItems); })();
   document.getElementById('btnLogConfirm').onclick = ()=>{
     if(logCart.length===0) return;
     logCart.forEach(l=>{
       const it = getItem(l.code); if(!it) return;
-      // stock + tx
       stockSetDelta(l.code, CENTRAL, l.qty);
-      addTx({TxID:uid(), Date: nowISO(), Type:'IN', ItemCode: l.code, ItemName: it.ItemName, Qty: l.qty, FromWard:'', ToWard: CENTRAL, By:'CSR', Notes:'', Deleted:false});
+      addTx({TxID:uid(), Date:nowISO(), Type:'IN', ItemCode:l.code, ItemName:it.ItemName, Qty:l.qty, FromWard:'', ToWard:CENTRAL, By:'CSR', Notes:'', Deleted:false});
     });
     logCart.length=0; renderLogCart();
     document.getElementById('logHint').textContent='Logged.';
@@ -388,6 +403,14 @@
 
   // ===== Transfer =====
   const trCart = []; // {code, qty, ward}
+  function renderTrCart(){
+    const tb = document.querySelector('#trCartTbl tbody'); if(!tb) return;
+    tb.innerHTML = trCart.map((l,i)=>{
+      const it = getItem(l.code)||{ItemName:'?'};
+      return `<tr><td>${l.code}</td><td>${it.ItemName}</td><td>${l.ward}</td><td class="t-right">${l.qty}</td><td><button class="btn" onclick="removeTr(${i})">×</button></td></tr>`
+    }).join('');
+  }
+  window.removeTr = (i)=>{ trCart.splice(i,1); renderTrCart(); };
   wireSuggest('trSearch','trSuggest',(code)=>{ document.getElementById('trSearch').value = code; });
   document.getElementById('btnTrAdd').onclick = ()=>{
     const code = (document.getElementById('trSearch').value||'').trim().toUpperCase();
@@ -402,28 +425,17 @@
     document.getElementById('trSearch').value=''; document.getElementById('trQty').value='';
     renderTrCart();
   };
-  function renderTrCart(){
-    const tb = document.querySelector('#trCartTbl tbody');
-    tb.innerHTML = trCart.map((l,i)=>{
-      const it = getItem(l.code)||{ItemName:'?'};
-      return `<tr><td>${l.code}</td><td>${it.ItemName}</td><td>${l.ward}</td><td class="t-right">${l.qty}</td><td><button class="btn" onclick="removeTr(${i})">×</button></td></tr>`
-    }).join('');
-  }
-  window.removeTr = (i)=>{ trCart.splice(i,1); renderTrCart(); };
   document.getElementById('btnTrConfirm').onclick = ()=>{
     if(trCart.length===0) return;
-    // Validate balances first
     for(const l of trCart){
       const bal = stockGet(l.code, CENTRAL);
       if(bal < l.qty){ document.getElementById('trHint').textContent = `${l.code}: insufficient CENTRAL stock (${bal})`; return }
     }
-    // Post
     trCart.forEach(l=>{
       const it = getItem(l.code); if(!it) return;
       stockSetDelta(l.code, CENTRAL, -l.qty);
       stockSetDelta(l.code, l.ward, l.qty);
-      const id = uid();
-      addTx({TxID:id, Date: nowISO(), Type:'TRANSFER', ItemCode:l.code, ItemName:it.ItemName, Qty:l.qty, FromWard:CENTRAL, ToWard:l.ward, By:'CSR', Notes:'', Deleted:false});
+      addTx({TxID:uid(), Date:nowISO(), Type:'TRANSFER', ItemCode:l.code, ItemName:it.ItemName, Qty:l.qty, FromWard:CENTRAL, ToWard:l.ward, By:'CSR', Notes:'', Deleted:false});
     });
     trCart.length=0; renderTrCart();
     document.getElementById('trHint').textContent='Transferred.';
@@ -447,7 +459,7 @@
       const status = s.Qty<=0? '<span class="pill bad">Out</span>' : (crit && s.Qty<=crit ? '<span class="pill warn">Critical</span>' : '<span class="pill">OK</span>');
       rows.push(`<tr><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td>${s.Ward}</td><td class="t-right">${s.Qty}</td><td>${status}</td></tr>`);
     }
-    // Include items with no stock when ALL or specific ward -> show zero rows as well for visibility
+    // Include zero rows when searching
     if(q){
       const codesInRows = new Set(filtStock.map(s=>s.ItemCode));
       db.items.forEach(it=>{
@@ -484,22 +496,17 @@
     const ix = db.tx.findIndex(t=>t.TxID===txid);
     if(ix<0) return;
     const t = db.tx[ix];
-    // Only allow delete on same date as selected
     if(!t.Date.startsWith(d)){ alert('Can only delete entries on selected date.'); return }
     if(t.Deleted){ alert('Already deleted.'); return }
-    // Reverse stock effect
     if(t.Type==='IN'){
       stockSetDelta(t.ItemCode, t.ToWard, -t.Qty);
     } else if(t.Type==='TRANSFER'){
-      // reverse CENTRAL->Ward movement
       stockSetDelta(t.ItemCode, t.ToWard, -t.Qty);
       stockSetDelta(t.ItemCode, t.FromWard, t.Qty);
     }
     t.Deleted = true; t.Notes = (t.Notes||'') + ' [deleted]';
-    db.tx[ix] = t;
-    saveDB(db);
-    renderHistory();
-    renderInventory();
+    db.tx[ix] = t; saveDB(db);
+    renderHistory(); renderInventory();
   };
 
   // Export CSV
@@ -510,10 +517,7 @@
     const cols = ['TxID','Date','Type','ItemCode','ItemName','Qty','FromWard','ToWard','By','Notes','Deleted'];
     const csv = [cols.join(',')].concat(rows.map(r=> cols.map(c=>`"${String(r[c]??'').replace(/"/g,'""')}"`).join(','))).join('\n');
     const blob = new Blob([csv], {type:'text/csv'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `transactions_${d}.csv`;
-    a.click();
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `transactions_${d}.csv`; a.click();
   };
 
   // ===== Analysis =====
@@ -523,35 +527,24 @@
     const ward = document.getElementById('anWard').value; // optional filter
     const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-days);
     const db = loadDB();
-    const mv = new Map(); // code -> qty moved (abs)
+    const mv = new Map();
     db.tx.forEach(t=>{
       const dt = new Date(t.Date);
-      if(dt<cutoff) return;
-      if(ward && !(t.FromWard===ward || t.ToWard===ward)) return;
-      if(t.Deleted) return;
-      const key = t.ItemCode;
-      const delta = Math.abs(Number(t.Qty)||0);
+      if(dt<cutoff) return; if(ward && !(t.FromWard===ward || t.ToWard===ward)) return; if(t.Deleted) return;
+      const key = t.ItemCode; const delta = Math.abs(Number(t.Qty)||0);
       mv.set(key, (mv.get(key)||0)+delta);
     });
     const items = loadDB().items;
-
     const arr = Array.from(mv.entries()).map(([code,qty])=>({code,qty,name:(getItem(code)||{}).ItemName||code}));
     const fast = arr.sort((a,b)=>b.qty-a.qty).slice(0,10);
-    const slow = items
-      .filter(it=>!mv.has(it.ItemCode))
-      .slice(0,10)
-      .map(it=>({code:it.ItemCode,name:it.ItemName,qty:0}));
-
-    const wardForCrit = ward || CENTRAL; // default CENTRAL
+    const slow = items.filter(it=>!mv.has(it.ItemCode)).slice(0,10).map(it=>({code:it.ItemCode,name:it.ItemName,qty:0}));
+    const wardForCrit = ward || CENTRAL;
     const critRows = loadDB().stock
       .filter(s=> s.Ward===wardForCrit)
-      .map(s=>{
-        const it = getItem(s.ItemCode); return {code:s.ItemCode,name:it?.ItemName||s.ItemCode, qty:s.Qty, crit: Number(it?.CriticalLevel||0)};
-      })
+      .map(s=>{ const it = getItem(s.ItemCode); return {code:s.ItemCode,name:it?.ItemName||s.ItemCode, qty:s.Qty, crit:Number(it?.CriticalLevel||0)}; })
       .filter(r=> r.crit>0 && r.qty<=r.crit)
       .sort((a,b)=>a.qty-b.qty)
       .slice(0,20);
-
     const fTB = document.querySelector('#anFast tbody');
     const sTB = document.querySelector('#anSlow tbody');
     const cTB = document.querySelector('#anCritical tbody');
@@ -587,6 +580,44 @@
     rd.readAsText(f);
   };
 
+  // ===== Self Tests =====
+  function assert(name, cond){ if(!cond) throw new Error('Test failed: '+name); console.log('✔', name); }
+  function clearAll(){ localStorage.removeItem(DB_KEY); }
+  function runTests(){
+    console.clear(); console.log('Running OsMak IMS self‑tests…');
+    clearAll();
+    // 1) Register items
+    upsertItem({ItemCode:'GAU-01',ItemName:'Gauze 4x4',Brand:'MedCare',Category:'DRESSINGS'});
+    upsertItem({ItemCode:'SYR-05',ItemName:'Syringe 5mL',Brand:'Terumo',Category:'Syringe',CriticalLevel:10});
+    assert('Items registered = 2', loadDB().items.length===2);
+    // 2) Stock in CENTRAL
+    stockSetDelta('GAU-01', CENTRAL, 100);
+    stockSetDelta('SYR-05', CENTRAL, 50);
+    addTx({TxID:uid(),Date:nowISO(),Type:'IN',ItemCode:'GAU-01',ItemName:'Gauze 4x4',Qty:100,FromWard:'',ToWard:CENTRAL,By:'TEST',Notes:'',Deleted:false});
+    addTx({TxID:uid(),Date:nowISO(),Type:'IN',ItemCode:'SYR-05',ItemName:'Syringe 5mL',Qty:50,FromWard:'',ToWard:CENTRAL,By:'TEST',Notes:'',Deleted:false});
+    assert('Central GAU-01=100', stockGet('GAU-01',CENTRAL)===100);
+    assert('Central SYR-05=50', stockGet('SYR-05',CENTRAL)===50);
+    // 3) Transfer CENTRAL -> ER
+    const qty=20; stockSetDelta('GAU-01',CENTRAL,-qty); stockSetDelta('GAU-01','ER',qty);
+    addTx({TxID:uid(),Date:nowISO(),Type:'TRANSFER',ItemCode:'GAU-01',ItemName:'Gauze 4x4',Qty:qty,FromWard:CENTRAL,ToWard:'ER',By:'TEST',Notes:'',Deleted:false});
+    assert('Central GAU-01=80 after transfer', stockGet('GAU-01',CENTRAL)===80);
+    assert('ER GAU-01=20 after transfer', stockGet('GAU-01','ER')===20);
+    // 4) Delete last transfer (auto‑reverse like UI does)
+    const today = todayStr();
+    const last = loadDB().tx.find(t=>t.Type==='TRANSFER' && t.Date.startsWith(today));
+    assert('Found transfer to delete', !!last);
+    // mimic delTx
+    stockSetDelta(last.ItemCode, last.ToWard, -last.Qty);
+    stockSetDelta(last.ItemCode, last.FromWard, last.Qty);
+    last.Deleted = true; saveDB(loadDB());
+    assert('Central GAU-01=100 after reversal', stockGet('GAU-01',CENTRAL)===100);
+    assert('ER GAU-01=0 after reversal', stockGet('GAU-01','ER')===0);
+    console.log('All tests passed.'); alert('All tests passed. Open console for details.');
+    // Refresh views so user sees seeded data
+    renderItems(); renderInventory(); renderHistory(); runAnalysis();
+  }
+  document.getElementById('btnTests').onclick = runTests;
+
   // ===== Init =====
   function init(){
     ensureWardOptions();
@@ -595,6 +626,8 @@
     renderInventory();
     renderHistory();
     runAnalysis();
+    // Optional demo seed if URL has #demo
+    if(location.hash==="#demo"){ if(loadDB().items.length===0) runTests(); }
   }
 
   // Menu wiring
