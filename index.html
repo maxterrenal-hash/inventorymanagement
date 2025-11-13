@@ -1,176 +1,605 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<title>Ospital ng Makati Inventory Management System</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-<link rel="icon" href="https://maxterrenal-hash.github.io/justculture/osmak-logo.png">
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ospital ng Makati Inventory Management System (No‑Backend)</title>
+  <style>
+    :root{
+      --osmak: #009a3e; --osmak-d:#007530; --bg:#f7f7f7; --card:#ffffff; --txt:#111827; --muted:#6b7280; --border:#e5e7eb; --danger:#dc2626; --accent:#2563eb;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial,sans-serif;background:var(--bg);color:var(--txt)}
+    header{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);background:#fff;position:sticky;top:0;z-index:5}
+    header img{height:36px}
+    header h1{font-size:18px;margin:0;font-weight:600}
+    header .sp{flex:1}
+    header .mini{display:flex;gap:8px}
+    header button, .btn{border:1px solid var(--border);background:#fff;border-radius:10px;padding:8px 12px;cursor:pointer}
+    header button:hover,.btn:hover{background:#f3f4f6}
+
+    .layout{display:grid;grid-template-columns:260px 1fr;min-height:calc(100vh - 60px)}
+    .sidebar{border-right:1px solid var(--border);background:#fff;padding:12px;position:sticky;top:60px;height:calc(100vh - 60px);overflow:auto}
+    .sidebar h3{margin:8px 8px 12px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+    .menu{display:flex;flex-direction:column;gap:6px}
+    .menu button{justify-content:flex-start;display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:10px;border:1px solid transparent;background:transparent;cursor:pointer}
+    .menu button.active,.menu button:hover{background:#f9fafb;border-color:var(--border)}
+
+    main{padding:16px}
+
+    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:14px}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .row .col{flex:1;min-width:200px}
+    label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+    input,select,textarea{width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:#fff}
+    input[type="number"]{text-align:right}
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px 10px;border-bottom:1px solid var(--border);font-size:14px}
+    th{background:#fafafa;text-align:left;color:#374151}
+    .t-right{text-align:right}
+    .pill{display:inline-block;padding:2px 8px;border:1px solid var(--border);border-radius:999px;font-size:12px;color:#374151;background:#fff}
+    .pill.warn{border-color:#f59e0b;color:#92400e;background:#fffbeb}
+    .pill.bad{border-color:#fecaca;color:#991b1b;background:#fef2f2}
+
+    .searchbox{display:flex;gap:8px;align-items:center}
+    .suggest{position:relative}
+    .sugg-list{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:10px;max-height:240px;overflow:auto;z-index:3}
+    .sugg-item{padding:8px 10px;cursor:pointer}
+    .sugg-item:hover{background:#f3f4f6}
+
+    .hint{font-size:12px;color:var(--muted)}
+    .danger{color:var(--danger)}
+    .ok{color:var(--osmak)}
+    .accent{color:var(--accent)}
+    .mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}
+    .hidden{display:none}
+  </style>
 </head>
 <body>
-  <aside class="sidebar">
-    <div class="brand">
-      <img src="https://maxterrenal-hash.github.io/justculture/osmak-logo.png" alt="OsMak" />
-      <div class="brand-title">
-        <div>Ospital ng Makati</div>
-        <small>Inventory Management System</small>
-      </div>
+  <header>
+    <img src="https://maxterrenal-hash.github.io/justculture/osmak-logo.png" alt="OsMak"/>
+    <h1>Ospital ng Makati Inventory Management System</h1>
+    <div class="sp"></div>
+    <div class="mini">
+      <button id="btnBackup" title="Download backup JSON">Backup</button>
+      <button id="btnRestore" title="Restore from JSON">Restore</button>
+      <input id="restoreFile" type="file" accept="application/json" class="hidden" />
     </div>
-    <nav>
-      <button data-view="registration" class="active">Registration</button>
-      <button data-view="log">Log</button>
-      <button data-view="transfer">Transfer</button>
-      <button data-view="inventory">Inventory</button>
-      <button data-view="history">Transaction History</button>
-      <button data-view="analysis">Data Analysis</button>
-    </nav>
-    <footer>CSR Panel • CENTRAL</footer>
-  </aside>
+  </header>
 
-  <main id="main"></main>
-
-  <!-- Registration -->
-  <template id="tpl-registration">
-    <section class="card">
-      <h2>Item Registration</h2>
-      <div class="grid">
-        <label>Item Code<input id="r-code" placeholder="e.g., SYR-05"></label>
-        <label>Item Name<input id="r-name" placeholder="e.g., Syringe 5 mL"></label>
-        <label>Brand<input id="r-brand" placeholder="e.g., Terumo"></label>
-        <label>Category<input id="r-cat" placeholder="e.g., Consumables"></label>
-        <label>Critical Level<input id="r-crit" type="number" min="0" value="0"></label>
-        <label class="span2">Remarks<input id="r-remarks" placeholder="Optional"></label>
+  <div class="layout">
+    <aside class="sidebar">
+      <h3>CSR Menu</h3>
+      <div class="menu">
+        <button data-view="registration" class="active">Registration</button>
+        <button data-view="log">Log</button>
+        <button data-view="transfer">Transfer</button>
+        <button data-view="inventory">Inventory</button>
+        <button data-view="history">Transaction History</button>
+        <button data-view="analysis">Data Analysis</button>
       </div>
-      <div class="row">
-        <button id="btn-save-item">Save / Update Item</button>
-        <span id="reg-msg" class="msg"></span>
-      </div>
-    </section>
-  </template>
+    </aside>
 
-  <!-- Log -->
-  <template id="tpl-log">
-    <section class="card">
-      <h2>Log Stock (CENTRAL)</h2>
-      <div class="grid">
-        <label class="span2">Find Item
-          <input id="l-search" placeholder="Type to search name/code/brand/category">
-        </label>
-        <div id="l-suggestions" class="suggest"></div>
-        <label>Qty<input id="l-qty" type="number" min="1" value="1"></label>
-        <label class="span2">Notes<input id="l-notes" placeholder="Optional"></label>
-        <button id="l-add">Add to Cart</button>
-      </div>
-
-      <h3>Cart</h3>
-      <table class="table" id="l-cart"></table>
-
-      <div class="row">
-        <button id="l-confirm">Confirm Stock-in</button>
-        <span id="l-msg" class="msg"></span>
-      </div>
-
-      <h3 style="margin-top:18px">All Items</h3>
-      <small>Click an item below to open Quick Add. This reads the <b>Items</b> sheet and shows everything even when search is blank.</small>
-      <div id="l-quickadd" class="quickadd hidden">
-        <div class="qa-head">
-          <div class="qa-title">Quick Add</div>
-          <button class="qa-close" id="qa-close" title="Close">✖</button>
+    <main>
+      <!-- Registration -->
+      <section id="view-registration" class="card">
+        <h2>Item Registration</h2>
+        <div class="row mt12">
+          <div class="col"><label>Item Code</label><input id="regCode" maxlength="40"/></div>
+          <div class="col"><label>Item Name</label><input id="regName"/></div>
+          <div class="col"><label>Brand</label><input id="regBrand"/></div>
+          <div class="col"><label>Category</label><input id="regCat"/></div>
+          <div class="col"><label>Critical Level (optional)</label><input id="regCrit" type="number" min="0" step="1"/></div>
         </div>
-        <div class="qa-body">
-          <div class="qa-itemline">
-            <strong id="qa-code"></strong> — <span id="qa-name"></span>
+        <div class="row mt12">
+          <div class="col"><label>Remarks</label><input id="regRemarks"/></div>
+        </div>
+        <div class="actions mt12">
+          <button class="btn" id="btnAddItem">Save Item</button>
+          <span class="hint" id="regHint"></span>
+        </div>
+        <div class="mt16">
+          <table id="itemsTable">
+            <thead><tr><th>Code</th><th>Name</th><th>Brand</th><th>Category</th><th>Critical</th><th>Remarks</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Log -->
+      <section id="view-log" class="card hidden">
+        <h2>Log — Stock In (to CENTRAL)</h2>
+        <div class="row mt12">
+          <div class="col suggest">
+            <label>Search Item</label>
+            <input id="logSearch" placeholder="Type name/code/brand..." autocomplete="off"/>
+            <div id="logSuggest" class="sugg-list hidden"></div>
           </div>
-          <div class="row">
-            <label>Qty<input id="qa-qty" type="number" min="1" value="1"></label>
-            <label class="grow">Notes<input id="qa-notes" placeholder="Optional"></label>
-            <button id="qa-add">Add to Cart</button>
+          <div class="col"><label>Qty</label><input id="logQty" type="number" min="1" step="1"/></div>
+        </div>
+        <div class="actions mt12">
+          <button class="btn" id="btnLogAdd">Add to Cart</button>
+          <span class="hint" id="logHint"></span>
+        </div>
+        <div class="mt16">
+          <h3>Cart</h3>
+          <table id="logCartTbl"><thead><tr><th>Code</th><th>Name</th><th class="t-right">Qty</th><th></th></tr></thead><tbody></tbody></table>
+          <div class="actions mt12">
+            <button class="btn" id="btnLogConfirm">Confirm</button>
+            <span class="hint">Posts all lines to CENTRAL stock and writes transactions.</span>
           </div>
         </div>
-      </div>
-      <div class="row" style="margin:8px 0">
-        <input id="l-filter" placeholder="Filter list (client-side)">
-        <button id="l-refresh">Refresh</button>
-      </div>
-      <table class="table" id="l-all"></table>
-    </section>
-  </template>
+      </section>
 
-  <!-- Transfer -->
-  <template id="tpl-transfer">
-    <section class="card">
-      <h2>Transfer (CENTRAL → Ward)</h2>
-      <div class="grid">
-        <label class="span2">Find Item
-          <input id="t-search" placeholder="Type to search">
-        </label>
-        <div id="t-suggestions" class="suggest"></div>
-        <label>Qty<input id="t-qty" type="number" min="1" value="1"></label>
-        <label>Ward
-          <select id="t-ward"></select>
-        </label>
-        <label class="span2">Notes<input id="t-notes" placeholder="Optional"></label>
-        <button id="t-add">Add to Cart</button>
-      </div>
-      <h3>Cart</h3>
-      <table class="table" id="t-cart"></table>
-      <div class="row">
-        <button id="t-confirm">Confirm Transfer</button>
-        <span id="t-msg" class="msg"></span>
-      </div>
-    </section>
-  </template>
+      <!-- Transfer -->
+      <section id="view-transfer" class="card hidden">
+        <h2>Transfer — CENTRAL → Ward</h2>
+        <div class="row mt12">
+          <div class="col suggest">
+            <label>Search Item</label>
+            <input id="trSearch" placeholder="Type name/code..." autocomplete="off"/>
+            <div id="trSuggest" class="sugg-list hidden"></div>
+          </div>
+          <div class="col"><label>Qty</label><input id="trQty" type="number" min="1" step="1"/></div>
+          <div class="col">
+            <label>Ward</label>
+            <select id="trWard"></select>
+            <span class="hint">Manage wards in History view toolbar.</span>
+          </div>
+        </div>
+        <div class="actions mt12">
+          <button class="btn" id="btnTrAdd">Add to Cart</button>
+          <span class="hint" id="trHint"></span>
+        </div>
+        <div class="mt16">
+          <h3>Cart</h3>
+          <table id="trCartTbl"><thead><tr><th>Code</th><th>Name</th><th>Ward</th><th class="t-right">Qty</th><th></th></tr></thead><tbody></tbody></table>
+          <div class="actions mt12">
+            <button class="btn" id="btnTrConfirm">Confirm</button>
+            <span class="hint">Checks CENTRAL balance before transfer.</span>
+          </div>
+        </div>
+      </section>
 
-  <!-- Inventory -->
-  <template id="tpl-inventory">
-    <section class="card">
-      <h2>Inventory (CENTRAL)</h2>
-      <div class="row">
-        <input id="i-search" placeholder="Search inventory">
-        <button id="i-refresh">Refresh</button>
-      </div>
-      <table class="table" id="i-table"></table>
-      <small>Critical items are highlighted.</small>
-    </section>
-  </template>
+      <!-- Inventory -->
+      <section id="view-inventory" class="card hidden">
+        <h2>Inventory</h2>
+        <div class="row mt12">
+          <div class="col"><label>Ward</label><select id="invWard"></select></div>
+          <div class="col"><label>Search</label><input id="invSearch" placeholder="Filter..."/></div>
+        </div>
+        <div class="mt12">
+          <table id="invTbl"><thead><tr><th>Code</th><th>Name</th><th>Brand</th><th>Ward</th><th class="t-right">Qty</th><th>Status</th></tr></thead><tbody></tbody></table>
+        </div>
+      </section>
 
-  <!-- History -->
-  <template id="tpl-history">
-    <section class="card">
-      <h2>Transaction History</h2>
-      <div class="grid">
-        <label>From<input id="h-from" type="date"></label>
-        <label>To<input id="h-to" type="date"></label>
-        <button id="h-load">Load</button>
-        <button id="h-export">Export CSV</button>
-      </div>
-      <table class="table" id="h-table"></table>
-      <small>Click 🗑 to delete a transaction (auto-reverse stock).</small>
-      <span id="h-msg" class="msg"></span>
-    </section>
-  </template>
+      <!-- History -->
+      <section id="view-history" class="card hidden">
+        <div style="display:flex;align-items:center;gap:10px;justify-content:space-between">
+          <h2>Transaction History</h2>
+          <div class="actions">
+            <label class="hint">Manage Wards: </label>
+            <input id="wardNew" placeholder="Add ward name" style="width:180px"/>
+            <button class="btn" id="btnWardAdd">Add Ward</button>
+          </div>
+        </div>
+        <div class="row mt12">
+          <div class="col"><label>Date</label><input id="histDate" type="date"/></div>
+          <div class="col"><label>Ward (filter)</label><select id="histWard"></select></div>
+          <div class="col actions" style="align-items:flex-end">
+            <button class="btn" id="btnHistRefresh">Refresh</button>
+            <button class="btn" id="btnExport">Export CSV</button>
+          </div>
+        </div>
+        <div class="mt12">
+          <table id="histTbl"><thead><tr><th>Time</th><th>Type</th><th>Item</th><th class="t-right">Qty</th><th>From</th><th>To</th><th>By</th><th></th></tr></thead><tbody></tbody></table>
+          <span class="hint">Delete only entries on the selected date. Deleting auto‑reverses stock.</span>
+        </div>
+      </section>
 
-  <!-- Analysis -->
-  <template id="tpl-analysis">
-    <section class="card">
-      <h2>Data Analysis</h2>
-      <div class="grid">
-        <label>From<input id="a-from" type="date"></label>
-        <label>To<input id="a-to" type="date"></label>
-        <button id="a-run">Run</button>
-      </div>
-      <div class="kpis" id="a-kpis"></div>
-      <div class="grid2">
-        <div><h3>Fast Moving</h3><table class="table" id="a-fast"></table></div>
-        <div><h3>Slow Moving</h3><table class="table" id="a-slow"></table></div>
-        <div><h3>Unused</h3><table class="table" id="a-unused"></table></div>
-        <div><h3>Critical Stock</h3><table class="table" id="a-critical"></table></div>
-      </div>
-    </section>
-  </template>
+      <!-- Analysis -->
+      <section id="view-analysis" class="card hidden">
+        <h2>Data Analysis</h2>
+        <div class="row mt12">
+          <div class="col"><label>Lookback (days)</label><input id="anDays" type="number" min="1" value="30"/></div>
+          <div class="col"><label>Ward</label><select id="anWard"></select></div>
+          <div class="col actions" style="align-items:flex-end"><button class="btn" id="btnAnRun">Run</button></div>
+        </div>
+        <div class="mt12 row">
+          <div class="col card">
+            <h3>Fast Moving</h3>
+            <table id="anFast"><thead><tr><th>Item</th><th class="t-right">Qty</th></tr></thead><tbody></tbody></table>
+          </div>
+          <div class="col card">
+            <h3>Slow / Unused</h3>
+            <table id="anSlow"><thead><tr><th>Item</th><th class="t-right">Qty</th></tr></thead><tbody></tbody></table>
+          </div>
+          <div class="col card">
+            <h3>Critical Stock</h3>
+            <table id="anCritical"><thead><tr><th>Item</th><th class="t-right">Qty</th></tr></thead><tbody></tbody></table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
 
-<script src="app.js"></script>
+  <script>
+  // ===== Simple localStorage DB =====
+  const DB_KEY = 'osmak_ims_v1';
+  const CENTRAL = 'CENTRAL';
+
+  const nowISO = () => new Date().toISOString();
+  const todayStr = (d=new Date()) => d.toISOString().slice(0,10);
+  const uid = () => `TX-${new Date().toISOString().replace(/[-:.TZ]/g,'').slice(0,14)}-${Math.random().toString(36).slice(2,6)}`;
+
+  const loadDB = () => {
+    const def = { items: [], stock: [], tx: [], wards: [CENTRAL,'ER','OPD','MICU','SICU'] };
+    try{ return JSON.parse(localStorage.getItem(DB_KEY)) || def }catch{ return def }
+  };
+  const saveDB = (db) => localStorage.setItem(DB_KEY, JSON.stringify(db));
+
+  // CRUD helpers
+  function upsertItem({ItemCode,ItemName,Brand,Category,Remarks,CriticalLevel}){
+    const db = loadDB();
+    const code = (ItemCode||'').trim().toUpperCase();
+    if(!code) throw new Error('Item Code required');
+    const name = (ItemName||'').trim();
+    if(!name) throw new Error('Item Name required');
+    const ix = db.items.findIndex(x=>x.ItemCode===code);
+    const rec = {ItemCode:code,ItemName:name,Brand:(Brand||'').trim(),Category:(Category||'').trim(),Remarks:(Remarks||'').trim(),CriticalLevel: Number(CriticalLevel||0), Active:true, CreatedAt: nowISO(), UpdatedAt: nowISO()};
+    if(ix>=0){ db.items[ix] = {...db.items[ix],...rec, CreatedAt: db.items[ix].CreatedAt, UpdatedAt: nowISO()}; }
+    else{ db.items.push(rec); }
+    saveDB(db);
+    return rec;
+  }
+  function findItemByQuery(q){
+    const db = loadDB();
+    const s = (q||'').trim().toLowerCase();
+    if(!s) return db.items.slice(0,20);
+    return db.items.filter(it=>[it.ItemCode,it.ItemName,it.Brand,it.Category].some(v=> (v||'').toLowerCase().includes(s))).slice(0,50);
+  }
+  function getItem(code){ return loadDB().items.find(x=>x.ItemCode===code) }
+
+  function stockGet(code, ward){
+    const db = loadDB();
+    return db.stock.find(x=>x.ItemCode===code && x.Ward===ward)?.Qty || 0;
+  }
+  function stockSetDelta(code, ward, delta){
+    const db = loadDB();
+    const i = db.stock.findIndex(x=>x.ItemCode===code && x.Ward===ward);
+    if(i<0){ db.stock.push({ItemCode:code,Ward:ward,Qty:Math.max(0,delta)}); }
+    else { db.stock[i].Qty = Math.max(0,(db.stock[i].Qty||0)+delta); }
+    saveDB(db);
+  }
+
+  function addTx(entry){
+    const db = loadDB();
+    db.tx.unshift(entry); // newest first
+    saveDB(db);
+  }
+  function listTxByDate(dateStr, wardFilter){
+    const db = loadDB();
+    return db.tx.filter(t=> t.Date.startsWith(dateStr) && (!wardFilter || t.FromWard===wardFilter || t.ToWard===wardFilter));
+  }
+
+  function ensureWardOptions(){
+    const db = loadDB();
+    const wards = Array.from(new Set([CENTRAL, ...db.wards]));
+    const sels = [document.getElementById('trWard'), document.getElementById('invWard'), document.getElementById('histWard'), document.getElementById('anWard')];
+    sels.forEach(sel=>{
+      sel.innerHTML='';
+      const optAll = sel.id==='invWard'? new Option('ALL','ALL') : new Option('(any)','');
+      if(sel.id==='invWard') sel.appendChild(optAll); else sel.appendChild(optAll);
+      wards.forEach(w=> sel.appendChild(new Option(w,w)));
+      // defaults
+      if(sel.id==='invWard') sel.value='ALL';
+      if(sel.id==='anWard') sel.value='';
+      if(sel.id==='histWard') sel.value='';
+    });
+  }
+
+  // ===== UI state =====
+  const views = ['registration','log','transfer','inventory','history','analysis'];
+  function switchView(key){
+    views.forEach(v=>{
+      document.querySelector(`[data-view="${v}"]`).classList.toggle('active', v===key);
+      document.getElementById(`view-${v}`).classList.toggle('hidden', v!==key);
+    });
+    if(key==='inventory') renderInventory();
+    if(key==='history') { document.getElementById('histDate').value = todayStr(); renderHistory(); }
+    if(key==='analysis') runAnalysis();
+    if(key==='registration') renderItems();
+  }
+
+  // ===== Registration =====
+  function renderItems(){
+    const tbody = document.querySelector('#itemsTable tbody');
+    const items = loadDB().items.slice().sort((a,b)=>a.ItemName.localeCompare(b.ItemName));
+    tbody.innerHTML = items.map(it=> `<tr><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td>${it.Category||''}</td><td class="t-right">${it.CriticalLevel||''}</td><td>${it.Remarks||''}</td></tr>`).join('');
+  }
+  document.getElementById('btnAddItem').onclick = () => {
+    const code = document.getElementById('regCode').value;
+    const name = document.getElementById('regName').value;
+    const brand = document.getElementById('regBrand').value;
+    const cat = document.getElementById('regCat').value;
+    const rem = document.getElementById('regRemarks').value;
+    const crit = document.getElementById('regCrit').value;
+    try{
+      const rec = upsertItem({ItemCode:code, ItemName:name, Brand:brand, Category:cat, Remarks:rem, CriticalLevel:crit});
+      document.getElementById('regHint').textContent = `Saved ${rec.ItemCode}`;
+      ['regCode','regName','regBrand','regCat','regRemarks','regCrit'].forEach(id=>document.getElementById(id).value='');
+      renderItems();
+    }catch(e){ document.getElementById('regHint').textContent = e.message; }
+  };
+
+  // ===== Suggest helpers =====
+  function wireSuggest(inpId, listId, onPick){
+    const inp = document.getElementById(inpId);
+    const list = document.getElementById(listId);
+    function refresh(){
+      const q = inp.value;
+      const res = findItemByQuery(q);
+      if(!q && res.length===0){ list.classList.add('hidden'); return }
+      list.innerHTML = res.map(it=>`<div class="sugg-item" data-code="${it.ItemCode}"><b>${it.ItemCode}</b> — ${it.ItemName}${it.Brand? ' • ' + it.Brand:''}</div>`).join('');
+      list.classList.toggle('hidden', res.length===0);
+      Array.from(list.children).forEach(div=> div.onclick = () => { onPick(div.dataset.code); list.classList.add('hidden'); });
+    }
+    inp.oninput = refresh;
+    inp.onfocus = refresh;
+    document.addEventListener('click', (e)=>{ if(!list.contains(e.target) && e.target!==inp) list.classList.add('hidden'); });
+  }
+
+  // ===== Log (Stock In) =====
+  const logCart = []; // {code, qty}
+  wireSuggest('logSearch','logSuggest',(code)=>{ document.getElementById('logSearch').value = code; });
+  document.getElementById('btnLogAdd').onclick = ()=>{
+    const code = (document.getElementById('logSearch').value||'').trim().toUpperCase();
+    const qty = Number(document.getElementById('logQty').value||0);
+    const it = getItem(code);
+    if(!it){ document.getElementById('logHint').textContent='Pick a valid item.'; return }
+    if(qty<=0){ document.getElementById('logHint').textContent='Qty must be > 0.'; return }
+    const ex = logCart.find(x=>x.code===code);
+    if(ex) ex.qty += qty; else logCart.push({code, qty});
+    document.getElementById('logSearch').value=''; document.getElementById('logQty').value='';
+    renderLogCart();
+  };
+  function renderLogCart(){
+    const tb = document.querySelector('#logCartTbl tbody');
+    tb.innerHTML = logCart.map((l,i)=>{
+      const it = getItem(l.code) || {ItemName:'?'};
+      return `<tr><td>${l.code}</td><td>${it.ItemName}</td><td class="t-right">${l.qty}</td><td><button class="btn" onclick="removeLog(${i})">×</button></td></tr>`
+    }).join('');
+  }
+  window.removeLog = (i)=>{ logCart.splice(i,1); renderLogCart(); };
+  document.getElementById('btnLogConfirm').onclick = ()=>{
+    if(logCart.length===0) return;
+    logCart.forEach(l=>{
+      const it = getItem(l.code); if(!it) return;
+      // stock + tx
+      stockSetDelta(l.code, CENTRAL, l.qty);
+      addTx({TxID:uid(), Date: nowISO(), Type:'IN', ItemCode: l.code, ItemName: it.ItemName, Qty: l.qty, FromWard:'', ToWard: CENTRAL, By:'CSR', Notes:'', Deleted:false});
+    });
+    logCart.length=0; renderLogCart();
+    document.getElementById('logHint').textContent='Logged.';
+    renderInventory();
+  };
+
+  // ===== Transfer =====
+  const trCart = []; // {code, qty, ward}
+  wireSuggest('trSearch','trSuggest',(code)=>{ document.getElementById('trSearch').value = code; });
+  document.getElementById('btnTrAdd').onclick = ()=>{
+    const code = (document.getElementById('trSearch').value||'').trim().toUpperCase();
+    const qty = Number(document.getElementById('trQty').value||0);
+    const ward = document.getElementById('trWard').value;
+    const it = getItem(code);
+    if(!it){ document.getElementById('trHint').textContent='Pick a valid item.'; return }
+    if(!ward){ document.getElementById('trHint').textContent='Choose ward.'; return }
+    if(qty<=0){ document.getElementById('trHint').textContent='Qty must be > 0.'; return }
+    const ex = trCart.find(x=>x.code===code && x.ward===ward);
+    if(ex) ex.qty += qty; else trCart.push({code, qty, ward});
+    document.getElementById('trSearch').value=''; document.getElementById('trQty').value='';
+    renderTrCart();
+  };
+  function renderTrCart(){
+    const tb = document.querySelector('#trCartTbl tbody');
+    tb.innerHTML = trCart.map((l,i)=>{
+      const it = getItem(l.code)||{ItemName:'?'};
+      return `<tr><td>${l.code}</td><td>${it.ItemName}</td><td>${l.ward}</td><td class="t-right">${l.qty}</td><td><button class="btn" onclick="removeTr(${i})">×</button></td></tr>`
+    }).join('');
+  }
+  window.removeTr = (i)=>{ trCart.splice(i,1); renderTrCart(); };
+  document.getElementById('btnTrConfirm').onclick = ()=>{
+    if(trCart.length===0) return;
+    // Validate balances first
+    for(const l of trCart){
+      const bal = stockGet(l.code, CENTRAL);
+      if(bal < l.qty){ document.getElementById('trHint').textContent = `${l.code}: insufficient CENTRAL stock (${bal})`; return }
+    }
+    // Post
+    trCart.forEach(l=>{
+      const it = getItem(l.code); if(!it) return;
+      stockSetDelta(l.code, CENTRAL, -l.qty);
+      stockSetDelta(l.code, l.ward, l.qty);
+      const id = uid();
+      addTx({TxID:id, Date: nowISO(), Type:'TRANSFER', ItemCode:l.code, ItemName:it.ItemName, Qty:l.qty, FromWard:CENTRAL, ToWard:l.ward, By:'CSR', Notes:'', Deleted:false});
+    });
+    trCart.length=0; renderTrCart();
+    document.getElementById('trHint').textContent='Transferred.';
+    renderInventory();
+  };
+
+  // ===== Inventory =====
+  function renderInventory(){
+    ensureWardOptions();
+    const ward = document.getElementById('invWard').value; // ALL or ward
+    const q = (document.getElementById('invSearch').value||'').toLowerCase();
+    const db = loadDB();
+    let rows = [];
+    const filtStock = db.stock.filter(s=> ward==='ALL' ? true : s.Ward===ward);
+    for(const s of filtStock){
+      const it = getItem(s.ItemCode);
+      if(!it) continue;
+      const text = `${it.ItemCode} ${it.ItemName} ${it.Brand||''} ${it.Category||''}`.toLowerCase();
+      if(q && !text.includes(q)) continue;
+      const crit = Number(it.CriticalLevel||0);
+      const status = s.Qty<=0? '<span class="pill bad">Out</span>' : (crit && s.Qty<=crit ? '<span class="pill warn">Critical</span>' : '<span class="pill">OK</span>');
+      rows.push(`<tr><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td>${s.Ward}</td><td class="t-right">${s.Qty}</td><td>${status}</td></tr>`);
+    }
+    // Include items with no stock when ALL or specific ward -> show zero rows as well for visibility
+    if(q){
+      const codesInRows = new Set(filtStock.map(s=>s.ItemCode));
+      db.items.forEach(it=>{
+        const text = `${it.ItemCode} ${it.ItemName} ${it.Brand||''} ${it.Category||''}`.toLowerCase();
+        if(!text.includes(q)) return;
+        if(!codesInRows.has(it.ItemCode)) rows.push(`<tr><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td>${ward==='ALL'?'—':ward}</td><td class="t-right">0</td><td><span class='pill bad'>Out</span></td></tr>`);
+      })
+    }
+    document.querySelector('#invTbl tbody').innerHTML = rows.join('') || '<tr><td colspan="6" class="hint">No records.</td></tr>';
+  }
+  document.getElementById('invSearch').oninput = renderInventory;
+  document.getElementById('invWard').onchange = renderInventory;
+
+  // ===== History =====
+  function renderHistory(){
+    ensureWardOptions();
+    const d = document.getElementById('histDate').value || todayStr();
+    const ward = document.getElementById('histWard').value;
+    const rows = listTxByDate(d, ward);
+    const tb = document.querySelector('#histTbl tbody');
+    tb.innerHTML = rows.map(r=>{
+      const time = r.Date.slice(11,19);
+      const delBtn = `<button class="btn" onclick="delTx('${r.TxID}')">Delete</button>`;
+      return `<tr><td>${time}</td><td>${r.Type}</td><td><b>${r.ItemCode}</b> — ${r.ItemName}</td><td class="t-right">${r.Qty}</td><td>${r.FromWard||''}</td><td>${r.ToWard||''}</td><td>${r.By||''}</td><td>${r.Deleted? '<span class=hint>deleted</span>' : delBtn}</td></tr>`
+    }).join('') || '<tr><td colspan="8" class="hint">No transactions for selected date.</td></tr>';
+  }
+  document.getElementById('histDate').onchange = renderHistory;
+  document.getElementById('histWard').onchange = renderHistory;
+  document.getElementById('btnHistRefresh').onclick = renderHistory;
+
+  window.delTx = (txid)=>{
+    const db = loadDB();
+    const d = document.getElementById('histDate').value || todayStr();
+    const ix = db.tx.findIndex(t=>t.TxID===txid);
+    if(ix<0) return;
+    const t = db.tx[ix];
+    // Only allow delete on same date as selected
+    if(!t.Date.startsWith(d)){ alert('Can only delete entries on selected date.'); return }
+    if(t.Deleted){ alert('Already deleted.'); return }
+    // Reverse stock effect
+    if(t.Type==='IN'){
+      stockSetDelta(t.ItemCode, t.ToWard, -t.Qty);
+    } else if(t.Type==='TRANSFER'){
+      // reverse CENTRAL->Ward movement
+      stockSetDelta(t.ItemCode, t.ToWard, -t.Qty);
+      stockSetDelta(t.ItemCode, t.FromWard, t.Qty);
+    }
+    t.Deleted = true; t.Notes = (t.Notes||'') + ' [deleted]';
+    db.tx[ix] = t;
+    saveDB(db);
+    renderHistory();
+    renderInventory();
+  };
+
+  // Export CSV
+  document.getElementById('btnExport').onclick = ()=>{
+    const d = document.getElementById('histDate').value || todayStr();
+    const ward = document.getElementById('histWard').value;
+    const rows = listTxByDate(d, ward);
+    const cols = ['TxID','Date','Type','ItemCode','ItemName','Qty','FromWard','ToWard','By','Notes','Deleted'];
+    const csv = [cols.join(',')].concat(rows.map(r=> cols.map(c=>`"${String(r[c]??'').replace(/"/g,'""')}"`).join(','))).join('\n');
+    const blob = new Blob([csv], {type:'text/csv'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `transactions_${d}.csv`;
+    a.click();
+  };
+
+  // ===== Analysis =====
+  function runAnalysis(){
+    ensureWardOptions();
+    const days = Number(document.getElementById('anDays').value||30);
+    const ward = document.getElementById('anWard').value; // optional filter
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-days);
+    const db = loadDB();
+    const mv = new Map(); // code -> qty moved (abs)
+    db.tx.forEach(t=>{
+      const dt = new Date(t.Date);
+      if(dt<cutoff) return;
+      if(ward && !(t.FromWard===ward || t.ToWard===ward)) return;
+      if(t.Deleted) return;
+      const key = t.ItemCode;
+      const delta = Math.abs(Number(t.Qty)||0);
+      mv.set(key, (mv.get(key)||0)+delta);
+    });
+    const items = loadDB().items;
+
+    const arr = Array.from(mv.entries()).map(([code,qty])=>({code,qty,name:(getItem(code)||{}).ItemName||code}));
+    const fast = arr.sort((a,b)=>b.qty-a.qty).slice(0,10);
+    const slow = items
+      .filter(it=>!mv.has(it.ItemCode))
+      .slice(0,10)
+      .map(it=>({code:it.ItemCode,name:it.ItemName,qty:0}));
+
+    const wardForCrit = ward || CENTRAL; // default CENTRAL
+    const critRows = loadDB().stock
+      .filter(s=> s.Ward===wardForCrit)
+      .map(s=>{
+        const it = getItem(s.ItemCode); return {code:s.ItemCode,name:it?.ItemName||s.ItemCode, qty:s.Qty, crit: Number(it?.CriticalLevel||0)};
+      })
+      .filter(r=> r.crit>0 && r.qty<=r.crit)
+      .sort((a,b)=>a.qty-b.qty)
+      .slice(0,20);
+
+    const fTB = document.querySelector('#anFast tbody');
+    const sTB = document.querySelector('#anSlow tbody');
+    const cTB = document.querySelector('#anCritical tbody');
+    fTB.innerHTML = fast.map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.qty}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No movement.</td></tr>';
+    sTB.innerHTML = slow.map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.qty}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">All items moved in window.</td></tr>';
+    cTB.innerHTML = critRows.map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.qty}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No items at/below critical.</td></tr>';
+  }
+  document.getElementById('btnAnRun').onclick = runAnalysis;
+
+  // ===== Wards mgmt =====
+  document.getElementById('btnWardAdd').onclick = ()=>{
+    const name = (document.getElementById('wardNew').value||'').trim().toUpperCase();
+    if(!name || name===CENTRAL) return;
+    const db = loadDB();
+    if(!db.wards.includes(name)) db.wards.push(name);
+    saveDB(db); document.getElementById('wardNew').value=''; ensureWardOptions();
+  };
+
+  // ===== Backup / Restore =====
+  document.getElementById('btnBackup').onclick = ()=>{
+    const db = loadDB();
+    const blob = new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `osmak_ims_backup_${todayStr()}.json`;
+    a.click();
+  };
+  document.getElementById('btnRestore').onclick = ()=> document.getElementById('restoreFile').click();
+  document.getElementById('restoreFile').onchange = (e)=>{
+    const f = e.target.files?.[0]; if(!f) return;
+    const rd = new FileReader();
+    rd.onload = ()=>{ try{ localStorage.setItem(DB_KEY, rd.result); init(); alert('Restore complete'); }catch{ alert('Invalid file') } }
+    rd.readAsText(f);
+  };
+
+  // ===== Init =====
+  function init(){
+    ensureWardOptions();
+    renderItems();
+    document.getElementById('histDate').value = todayStr();
+    renderInventory();
+    renderHistory();
+    runAnalysis();
+  }
+
+  // Menu wiring
+  document.querySelectorAll('.menu button').forEach(b=> b.onclick = ()=> switchView(b.dataset.view));
+  init();
+  </script>
 </body>
 </html>
