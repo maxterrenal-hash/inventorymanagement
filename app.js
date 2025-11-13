@@ -1,5 +1,5 @@
 /* ====== CONFIG ====== */
-const API = 'https://script.google.com/macros/s/AKfycby4yciKnuw-iMLIaj6ZPxWemyCNS2Ky-NbH5PjsFLqrQEOBvTjqQ_hnHcf37AAad9nS/exec'; // e.g. https://script.google.com/macros/s/AKfy.../exec
+const API = 'YOUR_APPS_SCRIPT_EXEC_URL_HERE'; // e.g. https://script.google.com/macros/s/AKfy.../exec
 
 /* ====== CORE HELPERS ====== */
 const $ = s => document.querySelector(s);
@@ -10,9 +10,9 @@ const el = (t, attrs={}, ...kids) => {
   return x;
 };
 const fmt = n => new Intl.NumberFormat().format(n);
+function ymd(d){ return d.toISOString().slice(0,10); }
 
 /* ====== NAV ====== */
-const views = ['registration','log','transfer','inventory','history','analysis'];
 const main = $('#main');
 document.querySelectorAll('nav button').forEach(b=>{
   b.addEventListener('click', ()=>{
@@ -41,18 +41,14 @@ async function getJSON(path, params={}){
   if(!res.ok) throw new Error('HTTP '+res.status);
   return res.json();
 }
-
-/* PATCHED: simple POST (form-encoded) to avoid CORS preflight */
+/* Simple POST (form-encoded) to avoid CORS preflight */
 async function postJSON(path, data){
   const qs = new URLSearchParams({ fn: path });
   const form = new URLSearchParams();
   Object.entries(data || {}).forEach(([k, v]) => {
     form.append(k, (typeof v === 'object') ? JSON.stringify(v) : String(v));
   });
-  const res = await fetch(API + '?' + qs.toString(), {
-    method: 'POST',
-    body: form
-  });
+  const res = await fetch(API + '?' + qs.toString(), { method: 'POST', body: form });
   if (!res.ok) throw new Error('HTTP ' + res.status);
   return res.json();
 }
@@ -95,47 +91,27 @@ function setupTypeahead(inputEl, suggestEl, onPick){
       suggestEl.style.display = res.items.length ? 'block' : 'none';
     }catch(_){ /* ignore */ }
   }
-
   let timer = null;
   inputEl.addEventListener('input', ()=>{
     clearTimeout(timer);
     timer = setTimeout(()=> run(inputEl.value.trim()), 150);
   });
-
   inputEl.addEventListener('focus', ()=>{
-    if (!inputEl.value.trim()) run(''); // load full list on focus when empty
+    if (!inputEl.value.trim()) run('');
   });
-
   document.addEventListener('click', (e)=>{
     if(!suggestEl.contains(e.target) && e.target!==inputEl) suggestEl.style.display='none';
   });
 }
 
-
 /* ====== LOG ====== */
+let __ITEMS_CACHE = [];
 const logCart = [];
-function initLog(){
-  let selected = null;
-  setupTypeahead($('#l-search'), $('#l-suggestions'), it=> selected = it);
-  $('#l-add').addEventListener('click', ()=>{
-    if(!selected){ alert('Pick an item from suggestions.'); return; }
-    const qty = Number($('#l-qty').value||0);
-    if(qty<=0){ alert('Qty must be > 0'); return; }
-    const notes = $('#l-notes').value.trim();
-    logCart.push({ itemCode:selected.ItemCode, itemName:selected.ItemName, qty, notes });
-    selected=null; $('#l-search').value=''; $('#l-qty').value=1; $('#l-notes').value='';
-    renderCart('#l-cart', logCart, (i)=>{ logCart.splice(i,1); renderCart('#l-cart', logCart); });
-  });
-  $('#l-confirm').addEventListener('click', async ()=>{
-    const msg=$('#l-msg');
-    if(!logCart.length){ msg.textContent='Cart empty'; return; }
-    msg.textContent='Posting...';
-    try{
-      const r = await postJSON('stockin', { cart: logCart });
-      if(r.ok){ msg.textContent = `Logged ${r.count} item(s) ✅`; logCart.length=0; renderCart('#l-cart', logCart); }
-      else{ msg.textContent = 'Error: '+r.error; }
-    }catch(e){ msg.textContent = 'Error: '+e.message; }
-  });
+
+async function fetchAllItems(){
+  const res = await getJSON('items', { q: '' });
+  __ITEMS_CACHE = res.items || [];
+  return __ITEMS_CACHE;
 }
 function renderCart(sel, cart, onDel){
   const t = document.querySelector(sel);
@@ -143,6 +119,93 @@ function renderCart(sel, cart, onDel){
     cart.map((r,i)=>`<tr><td>${r.itemCode}</td><td>${r.itemName}</td><td>${r.qty}</td><td>${r.notes||''}</td>
     <td><button class="secondary" data-i="${i}">✖</button></td></tr>`).join('');
   t.querySelectorAll('button[data-i]').forEach(b=> b.onclick=()=>onDel && onDel(Number(b.dataset.i)));
+}
+function renderItemsList(filterText=''){
+  const t = $('#l-all');
+  if(!t) return;
+  const q = (filterText||'').trim().toLowerCase();
+  const rows = (!q ? __ITEMS_CACHE :
+    __ITEMS_CACHE.filter(it=>{
+      const hay = [it.ItemCode,it.ItemName,it.Brand,it.Category].join(' ').toLowerCase();
+      return hay.includes(q);
+    })
+  );
+  t.innerHTML = '<tr><th>Code</th><th>Name</th><th>Brand</th><th>Category</th><th>Critical</th></tr>' +
+    rows.map(it=>`<tr class="pickable" data-code="${it.ItemCode}">
+      <td>${it.ItemCode}</td>
+      <td>${it.ItemName}</td>
+      <td>${it.Brand||''}</td>
+      <td>${it.Category||''}</td>
+      <td>${it.CriticalLevel||0}</td>
+    </tr>`).join('');
+  // clicking a row opens Quick Add
+  t.querySelectorAll('tr.pickable').forEach(tr=>{
+    tr.onclick = ()=>{
+      const code = tr.getAttribute('data-code');
+      const it = __ITEMS_CACHE.find(x=>x.ItemCode===code);
+      if(it) openQuickAdd(it);
+    };
+  });
+}
+function openQuickAdd(item){
+  $('#qa-code').textContent = item.ItemCode;
+  $('#qa-name').textContent = item.ItemName;
+  $('#qa-qty').value = 1;
+  $('#qa-notes').value = '';
+  $('#l-quickadd').classList.remove('hidden');
+  // Attach handler
+  $('#qa-add').onclick = ()=>{
+    const qty = Number($('#qa-qty').value||0);
+    if(qty<=0){ alert('Qty must be > 0'); return; }
+    const notes = $('#qa-notes').value.trim();
+    logCart.push({ itemCode:item.ItemCode, itemName:item.ItemName, qty, notes });
+    renderCart('#l-cart', logCart, (i)=>{ logCart.splice(i,1); renderCart('#l-cart', logCart); });
+    $('#l-quickadd').classList.add('hidden');
+  };
+  $('#qa-close').onclick = ()=> $('#l-quickadd').classList.add('hidden');
+}
+function initLog(){
+  let selected = null;
+  setupTypeahead($('#l-search'), $('#l-suggestions'), it=> selected = it);
+
+  // load all items list
+  $('#l-msg').textContent = 'Loading items...';
+  fetchAllItems()
+    .then(()=>{ renderItemsList(''); $('#l-msg').textContent=''; })
+    .catch(e=>{ $('#l-msg').textContent = 'Failed to load items: '+e.message; });
+
+  // filter client-side list
+  $('#l-filter').addEventListener('input', ()=> renderItemsList($('#l-filter').value));
+  $('#l-refresh').addEventListener('click', async ()=>{
+    $('#l-msg').textContent = 'Refreshing...';
+    await fetchAllItems(); renderItemsList($('#l-filter').value); $('#l-msg').textContent='';
+  });
+
+  // keep the old typeahead path too (power users)
+  $('#l-add').addEventListener('click', ()=>{
+    if(!selected){ alert('Pick an item via search or click from All Items.'); return; }
+    const qty = Number($('#l-qty').value||0);
+    if(qty<=0){ alert('Qty must be > 0'); return; }
+    const notes = $('#l-notes').value.trim();
+    logCart.push({ itemCode:selected.ItemCode, itemName:selected.ItemName, qty, notes });
+    selected=null; $('#l-search').value=''; $('#l-qty').value=1; $('#l-notes').value='';
+    renderCart('#l-cart', logCart, (i)=>{ logCart.splice(i,1); renderCart('#l-cart', logCart); });
+  });
+
+  $('#l-confirm').addEventListener('click', async ()=>{
+    const msg=$('#l-msg');
+    if(!logCart.length){ msg.textContent='Cart empty'; return; }
+    msg.textContent='Posting...';
+    try{
+      const r = await postJSON('stockin', { cart: logCart });
+      if(r.ok){
+        msg.textContent = `Logged ${r.count} item(s) ✅`;
+        logCart.length=0; renderCart('#l-cart', logCart);
+      } else {
+        msg.textContent = 'Error: '+r.error;
+      }
+    }catch(e){ msg.textContent = 'Error: '+e.message; }
+  });
 }
 
 /* ====== TRANSFER ====== */
@@ -205,7 +268,6 @@ async function initInventory(){
 }
 
 /* ====== HISTORY ====== */
-function ymd(d){ return d.toISOString().slice(0,10); }
 async function initHistory(){
   const from = $('#h-from'), to = $('#h-to'), t = $('#h-table'), msg=$('#h-msg');
   const d = new Date(); const s = new Date(d.getFullYear(), d.getMonth(), 1);
