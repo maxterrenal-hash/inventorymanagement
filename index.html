@@ -1,64 +1,98 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Ospital ng Makati Inventory Management System</title>
   <style>
     :root {
-      --osmak-green:#009a3e;
-      --osmak-green-dark:#007530;
-      --bg:#f5f5f5;
-      --card:#fff;
-      --text:#111827;
+      --osmak-green: #009a3e;
+      --osmak-green-dark: #007530;
+      --bg: #f5f5f5;
+      --card: #ffffff;
+      --text: #111827;
     }
+
     body {
-      margin:0; font-family:system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
-      background:var(--bg);
-      height:100vh; display:flex; align-items:center; justify-content:center;
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
     }
+
     .login-box {
-      background:var(--card);
-      padding:2rem;
-      border-radius:16px;
-      box-shadow:0 4px 14px rgba(0,0,0,0.1);
-      width:320px; text-align:center;
+      background: var(--card);
+      width: 320px;
+      padding: 2rem;
+      border-radius: 14px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+      text-align: center;
     }
+
     .logo {
-      width:90px; margin-bottom:10px;
+      width: 90px;
+      margin-bottom: 10px;
     }
-    h2 { color:var(--osmak-green); margin:0 0 1rem; }
+
+    h2 {
+      color: var(--osmak-green);
+      margin: 0 0 1rem;
+    }
+
     input {
-      width:100%; padding:10px; margin:6px 0;
-      border:1px solid #ccc; border-radius:8px; font-size:15px;
+      width: 100%;
+      padding: 10px;
+      margin: 6px 0;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 15px;
     }
+
     button {
-      width:100%; padding:10px;
-      background:var(--osmak-green); color:#fff;
-      border:none; border-radius:8px;
-      font-size:15px; font-weight:600; cursor:pointer;
+      width: 100%;
+      padding: 10px;
+      background: var(--osmak-green);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 15px;
+      cursor: pointer;
     }
-    button:hover { background:var(--osmak-green-dark); }
-    .error { color:#d00; margin-top:10px; font-size:14px; min-height:18px; }
+
+    button:hover {
+      background: var(--osmak-green-dark);
+    }
+
+    .error {
+      color: #d00;
+      margin-top: 10px;
+      font-size: 14px;
+      min-height: 18px;
+    }
   </style>
 </head>
 <body>
   <div class="login-box">
-    <img src="osmak-logo.png" alt="Ospital ng Makati" class="logo">
+    <img src="osmak-logo.png" alt="Ospital ng Makati" class="logo" />
     <h2>Login</h2>
-    <input id="username" placeholder="Username">
-    <input id="password" type="password" placeholder="Password">
+    <input id="username" placeholder="Username" />
+    <input id="password" type="password" placeholder="Password" />
     <button onclick="login()">Sign In</button>
     <p id="msg" class="error"></p>
   </div>
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbz_pumuB2t3vdXKex_pZ_cOwEshEySTG8AJMqQG-AQ_uC5b2lxEDcvkQnN3MdPf0Lo1/exec";
+    const API_URL =
+      "https://script.google.com/macros/s/AKfycbz_pumuB2t3vdXKex_pZ_cOwEshEySTG8AJMqQG-AQ_uC5b2lxEDcvkQnN3MdPf0Lo1/exec";
 
     async function login() {
-      const u = document.getElementById('username').value.trim();
-      const p = document.getElementById('password').value.trim();
-      const msg = document.getElementById('msg');
+      const u = document.getElementById("username").value.trim();
+      const p = document.getElementById("password").value.trim();
+      const msg = document.getElementById("msg");
       msg.textContent = "Checking…";
 
       if (!u || !p) {
@@ -67,7 +101,22 @@
       }
 
       try {
-        const res = await fetch(`${API_URL}?action=login&username=${encodeURIComponent(u)}&password=${encodeURIComponent(p)}`);
+        const res = await fetch(
+          `${API_URL}?action=login&username=${encodeURIComponent(
+            u
+          )}&password=${encodeURIComponent(p)}`,
+          {
+            method: "GET",
+            mode: "cors",
+            cache: "no-cache",
+          }
+        );
+
+        if (!res.ok) {
+          msg.textContent = `Server error (${res.status})`;
+          return;
+        }
+
         const data = await res.json();
 
         if (!data.success) {
@@ -84,7 +133,7 @@
           }
         }
       } catch (err) {
-        console.error(err);
+        console.error("Fetch error:", err);
         msg.textContent = "Server unreachable.";
       }
     }
