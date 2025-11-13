@@ -218,3 +218,6 @@ function renderApp(){
   return layoutShell();
 }
 window.addEventListener('DOMContentLoaded', renderApp);
+
+window.addEventListener('error', e => { console.error('JS error', e.message, e.error); });
+window.addEventListener('unhandledrejection', e => { console.error('Promise rejection', e.reason); });
