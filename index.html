@@ -1,61 +1,73 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8" />
-<title>Ospital ng Makati - Inventory Management System</title>
-
-<style>
+  <meta charset="UTF-8">
+  <title>Ospital ng Makati Inventory Management System</title>
+  <style>
     body {
-        margin: 0;
-        font-family: system-ui, -apple-system, sans-serif;
-        background: #009a3e;
+      font-family: system-ui, sans-serif;
+      background: #f5f5f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
     }
-
-    #app {
-        width: 100%;
-        height: 100vh;
+    .login-box {
+      background: #fff;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      width: 320px;
+      text-align: center;
     }
-
-    /* Center content like login screen */
-    .center-box {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
+    img.logo { width: 80px; margin-bottom: 10px; }
+    h2 { color: #009a3e; margin-bottom: 1rem; }
+    input {
+      width: 100%; padding: 10px; margin: 6px 0;
+      border: 1px solid #ccc; border-radius: 8px;
     }
-</style>
-
+    button {
+      width: 100%; padding: 10px; border: none;
+      background: #009a3e; color: white; border-radius: 8px;
+      cursor: pointer; font-weight: bold;
+    }
+    button:hover { background: #007530; }
+    .error { color: red; margin-top: 10px; }
+  </style>
 </head>
-
 <body>
+  <div class="login-box">
+    <img src="osmak-logo.png" class="logo" alt="Ospital ng Makati">
+    <h2>Login</h2>
+    <input id="username" placeholder="Username">
+    <input id="password" type="password" placeholder="Password">
+    <button onclick="login()">Sign In</button>
+    <p id="msg" class="error"></p>
+  </div>
 
-<div id="app">
-    <div class="center-box">
-        <h2 style="color:white;">Loading…</h2>
-    </div>
-</div>
+  <script>
+    function login() {
+      const u = document.getElementById('username').value.trim();
+      const p = document.getElementById('password').value.trim();
+      document.getElementById('msg').textContent = '';
 
-
-<script>
-// ------------ GITHUB ROUTING FUNCTION ------------
-function loadPage(page) {
-    const baseURL = "https://raw.githubusercontent.com/<YOUR-USER>/<YOUR-REPO>/main/";
-
-    fetch(baseURL + page)
-        .then(res => res.text())
-        .then(html => {
-            document.getElementById("app").innerHTML = html;
+      google.script.run
+        .withSuccessHandler(res => {
+          if (!res.success) {
+            document.getElementById('msg').textContent = res.message;
+          } else if (res.role === 'CSR') {
+            window.location.href = 'csr.html';
+          } else if (res.role === 'WARD') {
+            sessionStorage.setItem('ward', res.ward);
+            window.location.href = 'ward.html';
+          }
         })
-        .catch(err => {
-            document.getElementById("app").innerHTML =
-                "<p style='color:white;text-align:center;margin-top:40vh'>Failed to load page.</p>";
-            console.error("Error loading:", page, err);
-        });
-}
-
-// Default page → Login
-loadPage("login.html");
-</script>
-
+        .withFailureHandler(() => {
+          document.getElementById('msg').textContent = 'Server error. Try again.';
+        })
+        .checkLogin(u, p);
+    }
+  </script>
 </body>
 </html>
