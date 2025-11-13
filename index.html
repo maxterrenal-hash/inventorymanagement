@@ -71,8 +71,6 @@
       <button id="btnBackup" title="Download backup JSON">Backup</button>
       <button id="btnRestore" title="Restore from JSON">Restore</button>
       <button id="btnSync" title="Sync to Google Sheets">Sync</button>
-      <button id="btnPing" title="Test connectivity">Ping</button>
-      <button id="btnTests" title="Run self-tests">Tests</button>
       <input id="restoreFile" type="file" accept="application/json" class="hidden" />
     </div>
   </header>
@@ -232,45 +230,45 @@
         </div>
         <div class="mt12 row">
           <div class="col card">
-            <h3>Fast Moving</h3>
+            <h3>Fast Moving <button class="btn" data-export="anFast" title="Export CSV">Export</button></h3>
             <table id="anFast"><thead><tr><th>Item</th><th class="t-right">Qty</th></tr></thead><tbody></tbody></table>
           </div>
           <div class="col card">
-            <h3>Slow / Unused</h3>
+            <h3>Slow / Unused <button class="btn" data-export="anSlow" title="Export CSV">Export</button></h3>
             <table id="anSlow"><thead><tr><th>Item</th><th class="t-right">Qty</th></tr></thead><tbody></tbody></table>
           </div>
           <div class="col card">
-            <h3>Critical Stock</h3>
+            <h3>Critical Stock <button class="btn" data-export="anCritical" title="Export CSV">Export</button></h3>
             <table id="anCritical"><thead><tr><th>Item</th><th class="t-right">Qty</th></tr></thead><tbody></tbody></table>
           </div>
           <div class="col card">
-            <h3>Transfers by Ward</h3>
+            <h3>Transfers by Ward <button class="btn" data-export="anWardTotals" title="Export CSV">Export</button></h3>
             <table id="anWardTotals"><thead><tr><th>Ward</th><th class="t-right">Total Qty</th><th class="t-right">Distinct Items</th></tr></thead><tbody></tbody></table>
           </div>
           <div class="col card">
-            <h3>Items Transferred → <span id="anWardLabel">(any)</span></h3>
+            <h3>Items Transferred → <span id="anWardLabel">(any)</span> <button class="btn" data-export="anWardItems" title="Export CSV">Export</button></h3>
             <table id="anWardItems"><thead><tr><th>Item</th><th class="t-right">Qty</th></tr></thead><tbody></tbody></table>
           </div>
         </div>
         <div class="mt12 row">
           <div class="col card">
-            <h3>Stock Turnover</h3>
+            <h3>Stock Turnover <button class="btn" data-export="anTurnover" title="Export CSV">Export</button></h3>
             <table id="anTurnover"><thead><tr><th>Item</th><th class="t-right">Turnover</th><th class="t-right">Issues</th></tr></thead><tbody></tbody></table>
           </div>
           <div class="col card">
-            <h3>Days of Supply</h3>
+            <h3>Days of Supply <button class="btn" data-export="anDoS" title="Export CSV">Export</button></h3>
             <table id="anDoS"><thead><tr><th>Item</th><th class="t-right">Days</th><th class="t-right">On-hand</th></tr></thead><tbody></tbody></table>
           </div>
           <div class="col card">
-            <h3>Top Consumers (wards)</h3>
+            <h3>Top Consumers (wards) <button class="btn" data-export="anTopCons" title="Export CSV">Export</button></h3>
             <table id="anTopCons"><thead><tr><th>Ward</th><th class="t-right">Qty</th></tr></thead><tbody></tbody></table>
           </div>
           <div class="col card">
-            <h3>Dead Stock Aging</h3>
+            <h3>Dead Stock Aging <button class="btn" data-export="anDeadAging" title="Export CSV">Export</button></h3>
             <table id="anDeadAging"><thead><tr><th>Item</th><th class="t-right">Days Since Move</th></tr></thead><tbody></tbody></table>
           </div>
           <div class="col card">
-            <h3>Critical Breach Duration</h3>
+            <h3>Critical Breach Duration <button class="btn" data-export="anBreach" title="Export CSV">Export</button></h3>
             <table id="anBreach"><thead><tr><th>Item</th><th class="t-right">Days Below Crit</th></tr></thead><tbody></tbody></table>
           </div>
         </div>
@@ -285,7 +283,7 @@
   const TZ = 'Asia/Manila'; // display + date filters use Manila time
 
   const nowISO = () => new Date().toISOString(); // stored in UTC ISO
-  const todayStr = (d=new Date()) => d.toISOString().slice(0,10); // UTC (for tests)
+  const todayStr = (d=new Date()) => d.toISOString().slice(0,10); // UTC
   const fmtDateTZ = (d, tz=TZ) => new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
   const fmtTimeTZ = (d, tz=TZ) => new Intl.DateTimeFormat('en-GB',{timeZone:tz,hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(d);
   const todayStrTZ = (tz=TZ) => fmtDateTZ(new Date(), tz);
@@ -399,7 +397,7 @@
     try{
       const rec = upsertItem({ItemCode:code, ItemName:name, Brand:brand, Category:cat, Remarks:rem, CriticalLevel:crit});
       document.getElementById('regHint').textContent = `Saved ${rec.ItemCode}`;
-      ['regCode','regName','regBrand','regCat','regRemarks','regCrit'].forEach(id=>document.getElementById(id).value='');
+      ['regCode','regName','regBrand','regCat','regRemarks','regCrit'].forEach(id=>document.getElementById(id).value='';
       ensureCategoryOptions();
       renderItems(); if(document.getElementById('logItemsTbl')) renderLogItems(); renderInventory();
     }catch(e){ document.getElementById('regHint').textContent = e.message; }
@@ -748,4 +746,96 @@
     }
 
     // Items per selected ward
-    const wl = document.getElementById('anWardLabel'); if
+    const wl = document.getElementById('anWardLabel'); if(wl) wl.textContent = ward || '(any)';
+    const wiBody = document.querySelector('#anWardItems tbody');
+    if(wiBody){
+      if(ward){
+        const map = itemsByWard.get(ward) || new Map();
+        const arrI = Array.from(map.entries()).map(([code,qty])=>({code,qty,name:(getItem(code)||{}).ItemName||code})).sort((a,b)=>b.qty-a.qty).slice(0,25);
+        wiBody.innerHTML = arrI.map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.qty}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No transfers to this ward.</td></tr>';
+      } else {
+        wiBody.innerHTML = '<tr><td colspan="2" class="hint">Choose a ward to see item breakdown.</td></tr>';
+      }
+    }
+
+    // New analytics tables
+    const tTB = document.querySelector('#anTurnover tbody');
+    if(tTB){ tTB.innerHTML = turnoverRows.slice(0,15).map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.turnover.toFixed(2)}</td><td class='t-right'>${x.issued}</td></tr>`).join('') || '<tr><td colspan="3" class="hint">No issues in window.</td></tr>'; }
+    const dTB = document.querySelector('#anDoS tbody');
+    if(dTB){ dTB.innerHTML = dosRows.slice(0,15).map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${Number.isFinite(x.days)? x.days.toFixed(1):'—'}</td><td class='t-right'>${x.cur}</td></tr>`).join('') || '<tr><td colspan="3" class="hint">No on-hand or usage.</td></tr>'; }
+    const cnsTB = document.querySelector('#anTopCons tbody');
+    if(cnsTB){ cnsTB.innerHTML = Array.from(totalsByWard.entries()).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([w,q])=>`<tr><td>${w||'—'}</td><td class='t-right'>${q}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No transfers.</td></tr>'; }
+    const agTB = document.querySelector('#anDeadAging tbody');
+    if(agTB){ agTB.innerHTML = agingRows.slice(0,20).map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.days===Infinity?'—':x.days}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No on-hand stock.</td></tr>'; }
+    const brTB = document.querySelector('#anBreach tbody');
+    if(brTB){ brTB.innerHTML = breachRows.slice(0,20).map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.days}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No breaches in window.</td></tr>'; }
+  }
+
+  // ===== Analysis Export (all analysis tables) =====
+  function tableToCSV(id){
+    const tbl = document.getElementById(id); if(!tbl) return '';
+    const rows = Array.from(tbl.querySelectorAll('tr'));
+    return rows.map(tr => Array.from(tr.children)
+      .map(td => '"' + String(td.innerText||'').replaceAll('"','""') + '"')
+      .join(',')
+    ).join('\n');
+  }
+  function downloadCSV(csv, name){
+    const blob = new Blob([csv], {type:'text/csv'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click();
+  }
+  document.addEventListener('click', (e)=>{
+    const btn = e.target.closest('[data-export]'); if(!btn) return;
+    const id = btn.getAttribute('data-export');
+    const csv = tableToCSV(id);
+    const ward = (document.getElementById('anWard')?.value||'any') || 'any';
+    const days = document.getElementById('anDays')?.value || '30';
+    downloadCSV(csv, `${id}_${ward}_${days}d.csv`);
+  });
+
+  // ===== Wards mgmt =====
+  function renderWardList(){
+    const el = document.getElementById('wardList'); if(!el) return;
+    // Hidden per request (no pill list in UI)
+    el.innerHTML = '';
+  }
+  document.getElementById('btnWardAdd').onclick = ()=>{
+    const name = (document.getElementById('wardNew').value||'').trim().toUpperCase();
+    if(!name || name===CENTRAL) return;
+    const db = loadDB();
+    if(!db.wards.includes(name)) db.wards.push(name);
+    saveDB(db); document.getElementById('wardNew').value=''; ensureWardOptions(); renderWardList();
+  };
+
+  // ===== Backup / Restore =====
+  document.getElementById('btnBackup').onclick = ()=>{
+    const db = loadDB();
+    const blob = new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `osmak_ims_backup_${todayStr()}.json`;
+    a.click();
+  };
+  document.getElementById('btnRestore').onclick = ()=> document.getElementById('restoreFile').click();
+  document.getElementById('restoreFile').onchange = (e)=>{
+    const f = e.target.files?.[0]; if(!f) return;
+    const rd = new FileReader();
+    rd.onload = ()=>{ try{ localStorage.setItem(DB_KEY, rd.result); init(); alert('Restore complete'); }catch{ alert('Invalid file') } }
+    rd.readAsText(f);
+  };
+
+  // ===== Button binds / init =====
+  document.getElementById('btnAnRun').onclick = runAnalysis;
+  document.getElementById('btnSync').onclick = ()=> alert('Sync is disabled in no-backend mode.');
+
+  function init(){
+    ensureWardOptions(); ensureCategoryOptions();
+    document.querySelectorAll('.menu button').forEach(btn=> btn.onclick = ()=> switchView(btn.dataset.view));
+    const hd = document.getElementById('histDate'); if(hd) hd.value = todayStrTZ();
+    switchView('registration');
+    renderItems(); renderInventory(); renderHistory(); renderWardList();
+  }
+  init();
+  </script>
+</body>
+</html>
