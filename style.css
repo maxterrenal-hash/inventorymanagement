@@ -31,12 +31,25 @@ button.secondary{background:#fff;color:var(--text);border:1px solid var(--border
 .table{width:100%;border-collapse:collapse}
 .table th,.table td{border-bottom:1px solid var(--border);padding:8px;vertical-align:middle}
 .table tr.critical{background:#fff1f2}
+.table tr:hover td{background:#f8fafc}
+.table tr.pickable{cursor:pointer}
 .msg{color:var(--muted)}
 .suggest{max-height:160px;overflow:auto;border:1px solid var(--border);border-radius:8px;display:none;background:#fff}
 .suggest div{padding:8px;cursor:pointer}
 .suggest div:hover{background:#f1f5f9}
 .kpis{display:flex;gap:12px;margin:8px 0 12px}
 .kpis .card{flex:1;text-align:center}
+
+/* Quick Add panel */
+.quickadd{border:1px dashed var(--border);border-radius:10px;background:#fcfffd;margin:10px 0 12px;padding:10px}
+.quickadd.hidden{display:none}
+.qa-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.qa-title{font-weight:600}
+.qa-close{background:#fff;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:6px 10px;cursor:pointer}
+.qa-close:hover{background:#f3f4f6}
+.qa-itemline{margin-bottom:8px}
+.grow{flex:1}
+
 @media (max-width:900px){
   .sidebar{width:220px}
   .grid,.grid2{grid-template-columns:1fr}
