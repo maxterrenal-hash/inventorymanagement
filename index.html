@@ -637,21 +637,30 @@
 
   // ===== Sync to Google Sheets (one-way) =====
   const SYNC = {
-    url: 'https://script.google.com/macros/s/AKfycby8FJFFDzO8xxwg12YKqlMVJA-YPYjSe0xXLzLEN4ClgbjoqBrHFVtIrn9d2dD5qetJ/exec', // <-- replace
-    token: 'CHANGE_ME' // keep simple to avoid CORS preflight; validated server-side
-  };
+  url: 'https://script.google.com/macros/s/AKfycby8FJFFDzO8xxwg12YKqlMVJA-YPYjSe0xXLzLEN4ClgbjoqBrHFVtIrn9d2dD5qetJ/exec',
+  token: 'YOUR_TOKEN'
+};
+
   async function syncToSheets(){
     const btn = document.getElementById('btnSync');
     try{
       btn.disabled = true; btn.textContent = 'Syncing…';
       const payload = loadDB();
-      const res = await fetch(SYNC.url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'syncAll', token: SYNC.token, payload})});
+      // Use a CORS "simple request" to avoid preflight that Apps Script can't answer reliably
+      const res = await fetch(SYNC.url, {
+        method:'POST',
+        headers:{ 'Content-Type':'text/plain;charset=utf-8' }, // simple header (no preflight)
+        body: JSON.stringify({action:'syncAll', token: SYNC.token, payload})
+      });
       if(!res.ok) throw new Error('HTTP '+res.status);
-      const data = await res.json();
+      const data = await res.json().catch(()=>({ ok:false, error:'Bad JSON from server' }));
+      if(!data.ok) throw new Error(data.error || 'Sync failed');
       alert(`Synced: items ${data.itemsWritten}, stock ${data.stockWritten}, tx new ${data.txAppended}, wards ${data.wardsWritten}`);
       localStorage.setItem(DB_KEY+':lastSync', new Date().toISOString());
     }catch(err){
-      console.error(err); alert('Sync failed: '+ err.message);
+      console.error(err);
+      const tip = location.protocol==='file:' ? '\nTip: host this over HTTPS (GitHub Pages) instead of file:// to avoid CORS issues.' : '';
+      alert('Sync failed: '+ err.message + tip);
     }finally{
       btn.disabled = false; btn.textContent = 'Sync';
     }
