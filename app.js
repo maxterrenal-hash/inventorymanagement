@@ -1,5 +1,5 @@
 /* ====== CONFIG ====== */
-const API = 'https://script.google.com/macros/s/AKfycbysJQQByb-fjvOcc3pYHf_K7tEohyB79r8aPa6TqbdudKQOafk7TwykVGyc28VHIsOO/exec'; // e.g. https://script.google.com/macros/s/AKfy.../exec
+const API = 'https://script.google.com/macros/s/AKfycbygIEyRFATDq0WcUf2t35xLQv8nx18MpNf2oD2p_lYtYLl9_Xht0o2GTIrSx0Kw3lwu/exec'; // e.g. https://script.google.com/macros/s/AKfy.../exec
 
 /* ====== CORE HELPERS ====== */
 const $ = s => document.querySelector(s);
