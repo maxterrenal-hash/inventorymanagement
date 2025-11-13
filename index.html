@@ -5,78 +5,306 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Ospital ng Makati Inventory Management System</title>
   <link rel="icon" href="https://maxterrenal-hash.github.io/justculture/osmak-logo.png"/>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
   <style>
-    @font-face{font-family:Inter;src:local("Inter"),local("system-ui");}
+    :root{
+      --osmak-green:#009a3e; --osmak-green-dark:#007530;
+      --bg:#f7f7f7; --card:#ffffff; --text:#111827; --muted:#6b7280; --border:#e5e7eb;
+      --accent:#2563eb; --danger:#dc2626;
+    }
+    *{box-sizing:border-box}
+    html,body,#app{height:100%}
+    body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Inter,sans-serif;background:var(--bg);color:var(--text)}
+    a{color:inherit;text-decoration:none}
+    input,select,button{font:inherit}
+    button{cursor:pointer}
+
+    /* Layout */
+    .center{display:flex;align-items:center;justify-content:center;height:100%}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;box-shadow:0 10px 20px rgba(0,0,0,.05);min-width:340px}
+    .h1{font-size:22px;margin:8px 0 16px}
+    .row{display:flex;gap:12px;align-items:center}
+    .col{display:flex;flex-direction:column;gap:8px}
+    .input{padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:#fff}
+    .btn{padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:#fff}
+    .btn.primary{background:var(--osmak-green);color:#fff;border-color:var(--osmak-green-dark)}
+    .btn.ghost{background:#fff}
+    .note{color:var(--muted);font-size:12px}
+
+    .layout{display:grid;grid-template-columns:260px 1fr;height:100%}
+    .sidebar{background:#ffffff;border-right:1px solid var(--border);display:flex;flex-direction:column}
+    .brand{display:flex;gap:10px;align-items:center;padding:14px;border-bottom:1px solid var(--border)}
+    .brand img{width:36px;height:36px;border-radius:8px;border:1px solid #eee}
+    .menu{padding:8px}
+    .menu button{width:100%;text-align:left;border:none;background:transparent;padding:10px 12px;border-radius:8px}
+    .menu button.active, .menu button:hover{background:#f0fdf4}
+    .userbar{margin-top:auto;padding:12px;border-top:1px solid var(--border);font-size:13px;color:var(--muted)}
+    .main{padding:18px;overflow:auto}
+    .toolbar{display:flex;gap:8px;align-items:center;margin-bottom:12px}
+    .table{width:100%;border-collapse:collapse;font-size:14px;background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+    .table th,.table td{border-bottom:1px solid var(--border);padding:10px}
+    .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid var(--border);color:#374151;background:#fff}
+    .badge.green{background:#f0fdf4;border-color:#bbf7d0;color:#166534}
+    .toast{position:fixed;right:16px;top:16px;background:#111827;color:#fff;padding:10px 12px;border-radius:8px;opacity:.95;z-index:999}
   </style>
-  <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
   <div id="app"></div>
+
+  <!-- 1) Config FIRST: set your Apps Script Web App URL here -->
   <script>
     window.APP_CONFIG = {
-      API_URL: "https://script.google.com/macros/s/AKfycbyZJPLiDvgj0cuhb8jxFlT-yCXE6rH8KRGagjAGOBrGhWbvzNKHA3Un1QRUwlSulyii/exec" // e.g. https://script.google.com/macros/s/AKfy.../exec
+      API_URL: "https://script.google.com/macros/s/AKfycbyZJPLiDvgj0cuhb8jxFlT-yCXE6rH8KRGagjAGOBrGhWbvzNKHA3Un1QRUwlSulyii/exec"
     };
   </script>
-  <script src="app.js"></script>
 
+  <!-- 2) App code (self-contained SPA) -->
   <script>
-/* ---- Ultra-simple login override ---- */
-(function attachLoginWiring(){
-  function bind(){
-    const btn = document.querySelector('button.btn.primary');
-    const uEl = document.getElementById('username');
-    const pEl = document.getElementById('password');
-    if (!btn || !uEl || !pEl) { setTimeout(bind, 300); return; } // wait until login UI exists
+    /************ State & Utils ************/
+    const state = {
+      token: sessionStorage.getItem('token') || '',
+      role: sessionStorage.getItem('role') || '',
+      wardCode: sessionStorage.getItem('wardCode') || '',
+      username: sessionStorage.getItem('username') || '',
+      menu: sessionStorage.getItem('menu') || ''
+    };
+    const API_URL = window.APP_CONFIG.API_URL;
 
-    // prevent any form auto-submit
-    btn.type = 'button';
+    function $(sel,root=document){ return root.querySelector(sel); }
+    function el(tag, attrs={}, children=[]){
+      const n = document.createElement(tag);
+      Object.entries(attrs).forEach(([k,v])=>{
+        if (k==='class') n.className = v;
+        else if (k==='html') n.innerHTML = v;
+        else if (k==='onclick') n.addEventListener('click', v);
+        else n.setAttribute(k,v);
+      });
+      (Array.isArray(children)?children:[children]).filter(Boolean).forEach(c=>{
+        if (typeof c==='string') n.appendChild(document.createTextNode(c));
+        else n.appendChild(c);
+      });
+      return n;
+    }
+    function toast(msg, ms=2200){
+      const t = el('div',{class:'toast'},msg);
+      document.body.appendChild(t);
+      setTimeout(()=>t.remove(), ms);
+    }
 
-    btn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      const api = (window.APP_CONFIG && window.APP_CONFIG.API_URL) || '';
+    async function api(action, payload={}, withAuth=true){
+      const body = JSON.stringify({ action, payload, session: withAuth ? state.token : '' });
+      const res = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, body });
+      if (!res.ok) throw new Error('Network error');
+      const json = await res.json().catch(()=>({ok:false,error:'Invalid server JSON'}));
+      if (!json.ok) throw new Error(json.error || 'Server error');
+      return json.data;
+    }
+
+    /************ Views ************/
+    function viewLogin(){
+      const app = $('#app'); app.innerHTML='';
+      const card = el('div',{class:'card'},[
+        el('div',{class:'row'},[
+          el('img',{src:'https://maxterrenal-hash.github.io/justculture/osmak-logo.png',alt:'Osmak'}),
+          el('div',{class:'h1'},'Ospital ng Makati Inventory')
+        ]),
+        el('div',{class:'col',style:'margin-top:12px'},[
+          el('input',{id:'username',class:'input',placeholder:'Username'}),
+          el('input',{id:'password',class:'input',placeholder:'Password',type:'password'}),
+          el('button',{id:'loginBtn',class:'btn primary'},'Login'),
+          el('div',{class:'note'},'Tip: Seed demo accounts (csr1/csr123, eruser/er123) or add your own in the Logins sheet.')
+        ])
+      ]);
+      const wrap = el('div',{class:'center'},card);
+      app.appendChild(wrap);
+    }
+
+    function layoutShell(){
+      const app = $('#app'); app.innerHTML='';
+      const sidebar = el('div',{class:'sidebar'},[
+        el('div',{class:'brand'},[
+          el('img',{src:'https://maxterrenal-hash.github.io/justculture/osmak-logo.png',alt:'Osmak'}),
+          el('div',{},[
+            el('div',{},'Ospital ng Makati'),
+            el('div',{class:'note'},'Inventory Management')
+          ])
+        ]),
+        el('div',{class:'menu',id:'menu'}),
+        el('div',{class:'userbar'},[
+          el('div',{}, state.username+(state.role==='WARD'?' • '+state.wardCode:'') ),
+          el('div',{class:'note'}, state.role==='CSR'?'CSR':'Ward'),
+          el('div',{style:'margin-top:8px'},[
+            el('button',{class:'btn ghost',onclick:()=>{
+              sessionStorage.clear();
+              Object.assign(state,{token:'',role:'',wardCode:'',username:'',menu:''});
+              renderApp();
+            }},'Logout')
+          ])
+        ])
+      ]);
+      const main = el('div',{class:'main',id:'main'},[]);
+      const root = el('div',{class:'layout'},[sidebar,main]);
+      app.appendChild(root);
+
+      const menu = $('#menu');
+      const itemsCSR = [
+        ['registration','Registration'],
+        ['log','Log'],
+        ['transfer','Transfer'],
+        ['inventory','Inventory'],
+        ['tx','Transaction History'],
+        ['analysis','Data Analysis']
+      ];
+      const itemsWard = [
+        ['registerPatient','Register Patient'],
+        ['charge','Charge'],
+        ['inventory','Inventory'],
+        ['tx','Transaction History'],
+        ['analysis','Data Analysis']
+      ];
+      const items = (state.role==='CSR') ? itemsCSR : itemsWard;
+      items.forEach(([key,label])=>{
+        const btn = el('button',{class:(state.menu===key?'active':''),onclick:()=>{ state.menu=key; sessionStorage.setItem('menu',key); renderMain(); }},label);
+        menu.appendChild(btn);
+      });
+      if (!state.menu) { state.menu='inventory'; sessionStorage.setItem('menu','inventory'); }
+      renderMain();
+    }
+
+    function renderMain(){
+      const main = $('#main'); main.innerHTML='';
+      const titleMap = {
+        registration:'Item Registration',
+        log:'Log (Stock In)',
+        transfer:'Transfer',
+        inventory:'Inventory',
+        tx:'Transaction History',
+        analysis:'Data Analysis',
+        registerPatient:'Register Patient',
+        charge:'Charge'
+      };
+      main.appendChild(el('h2',{}, titleMap[state.menu]||''));
+      if (state.menu==='inventory') return viewInventory(main);
+      main.appendChild(el('p',{class:'note'},'Module shell ready. We’ll hook actions next.'));
+    }
+
+    async function viewInventory(main){
+      const toolbar = el('div',{class:'toolbar'},[]);
+      if (state.role==='CSR'){
+        const locSel = el('select',{class:'input',id:'invLoc'},[
+          el('option',{value:'ALL'},'All locations'),
+          el('option',{value:'CENTRAL'},'Central')
+        ]);
+        try{
+          const wards = await api('listWards',{});
+          wards.forEach(w=>locSel.appendChild(el('option',{value:w.WardCode},`${w.WardCode} — ${w.WardName}`)));
+        }catch(_){}
+        toolbar.appendChild(locSel);
+      } else {
+        toolbar.appendChild(el('span',{class:'badge green'}, `Ward: ${state.wardCode}`));
+      }
+      const search = el('input',{class:'input',placeholder:'Search item name/code/brand',style:'min-width:280px',id:'invSearch'});
+      const refreshBtn = el('button',{class:'btn'},'Refresh');
+      toolbar.appendChild(search); toolbar.appendChild(refreshBtn);
+      main.appendChild(toolbar);
+
+      const table = el('table',{class:'table'});
+      const thead = el('thead',{}, el('tr',{},[
+        el('th',{},'Item Code'),
+        el('th',{},'Item Name'),
+        el('th',{},'Brand'),
+        el('th',{},'Location'),
+        el('th',{},'Qty'),
+        el('th',{},'Reorder'),
+        el('th',{},'Status')
+      ]));
+      const tbody = el('tbody',{});
+      table.appendChild(thead); table.appendChild(tbody);
+      main.appendChild(table);
+
+      async function load(){
+        const q = $('#invSearch').value.trim();
+        const loc = $('#invLoc') ? $('#invLoc').value : 'ALL';
+        try{
+          const data = await api('getInventory',{ location: loc, query: q });
+          tbody.innerHTML='';
+          if (!data.length){
+            tbody.appendChild(el('tr',{}, el('td',{colspan:'7'},'No inventory.')));
+            return;
+          }
+          data.forEach(r=>{
+            const critical = (r.ReorderPoint!=='' && Number(r.Qty)<=Number(r.ReorderPoint));
+            const tr = el('tr',{},[
+              el('td',{},r.ItemCode||''),
+              el('td',{},r.ItemName||''),
+              el('td',{},r.Brand||''),
+              el('td',{},r.Location||''),
+              el('td',{},String(r.Qty)),
+              el('td',{}, r.ReorderPoint===''?'':String(r.ReorderPoint)),
+              el('td',{}, critical? 'CRITICAL' : 'OK')
+            ]);
+            tbody.appendChild(tr);
+          });
+        }catch(err){ toast(err.message||String(err)); }
+      }
+      refreshBtn.onclick = load;
+      search.oninput = ()=>{ clearTimeout(search._t); search._t=setTimeout(load,250); };
+      if ($('#invLoc')) $('#invLoc').onchange = load;
+      load();
+    }
+
+    /************ Render Root ************/
+    function renderApp(){
+      if (!state.token){ viewLogin(); return; }
+      layoutShell();
+    }
+
+    // Error hooks so blank screens tell us why
+    window.addEventListener('error', e => console.error('JS error:', e.message, e.error));
+    window.addEventListener('unhandledrejection', e => console.error('Promise rejection:', e.reason));
+
+    // Event delegation for the Login button (robust even if UI re-renders)
+    document.addEventListener('click', async (ev)=>{
+      const t = ev.target;
+      if (!t || t.id !== 'loginBtn') return;
+
+      const api = API_URL;
+      const uEl = document.getElementById('username');
+      const pEl = document.getElementById('password');
+      if (!api) return alert('API URL missing');
+      if (!uEl || !pEl) return alert('Login fields not found');
+
       const username = (uEl.value || '').trim();
       const password = pEl.value || '';
+      if (!username || !password) return alert('Enter username and password');
 
-      if (!api) { alert('API URL missing'); return; }
-      if (!username || !password) { alert('Enter username and password'); return; }
-
-      try {
+      try{
         const r = await fetch(api, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({ action: 'login', payload: { username, password } })
+          method:'POST',
+          headers:{'Content-Type':'text/plain'},
+          body: JSON.stringify({ action:'login', payload:{ username, password } })
         });
-        const j = await r.json().catch(()=>({ ok:false, error:'Invalid server JSON' }));
+        const j = await r.json().catch(()=>({ok:false,error:'Bad JSON from server'}));
+        if (!j.ok) return alert('Login failed: ' + (j.error || 'Invalid credentials'));
 
-        if (!j.ok) { alert('Login failed: ' + (j.error || 'Invalid credentials')); return; }
-
-        // Save and move on
+        // persist session
         sessionStorage.setItem('token', j.data.token);
         sessionStorage.setItem('role', j.data.role);
         sessionStorage.setItem('wardCode', j.data.wardCode || '');
         sessionStorage.setItem('username', j.data.username || username);
 
-        // Use app state if present; else reload
-        if (window.state && typeof window.renderApp === 'function') {
-          state.token = j.data.token; state.role = j.data.role;
-          state.wardCode = j.data.wardCode || ''; state.username = j.data.username || username;
-          state.menu = 'inventory';
-          renderApp();
-        } else {
-          location.reload();
-        }
-      } catch (err) {
+        state.token = j.data.token; state.role = j.data.role;
+        state.wardCode = j.data.wardCode || ''; state.username = j.data.username || username;
+        state.menu = 'inventory'; sessionStorage.setItem('menu','inventory');
+        renderApp();
+      }catch(err){
+        console.error(err);
         alert('Network error: ' + err);
       }
-    }, { once:false });
+    }, false);
 
-    console.log('Login wiring attached ✅');
-  }
-  bind();
-})();
-</script>
-
+    // Boot
+    window.addEventListener('DOMContentLoaded', renderApp);
+  </script>
 </body>
 </html>
-
