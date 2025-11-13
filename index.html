@@ -57,7 +57,6 @@
 
     /* Scrollable boxes */
     .scrollbox{max-height:700px;overflow:auto;border:1px solid var(--border);border-radius:12px}
-    /* ~20 visible rows (approx 35-38px row height + header). Adjust if needed: */
     .scrollbox.inventory{max-height:840px}
     .scrollbox table{margin:0}
     .scrollbox thead th{position:sticky;top:0;z-index:1;background:#fafafa}
@@ -207,7 +206,7 @@
             <label class="hint">Manage Wards: </label>
             <input id="wardNew" placeholder="Add ward name" style="width:180px"/>
             <button class="btn" id="btnWardAdd">Add Ward</button>
-            <button class="btn" id="btnClearHist" title="Clear ALL transactions">Clear All History</button>
+            <button class="btn" id="btnClearHist" title="Clear ALL transactions and inventory">Clear All History</button>
           </div>
         </div>
         <div class="row mt12">
@@ -528,7 +527,6 @@
     const db = loadDB();
     const rows = [];
 
-    // CENTRAL stock rows
     const centralStock = db.stock.filter(s=> s.Ward===CENTRAL);
     for(const s of centralStock){
       const it = getItem(s.ItemCode);
@@ -563,16 +561,19 @@
   document.getElementById('histWard').onchange = renderHistory;
   document.getElementById('btnHistRefresh').onclick = renderHistory;
 
-  // Clear ALL history (password-protected)
+  // Clear ALL history + ALL inventory (password-protected)
   document.getElementById('btnClearHist').onclick = ()=>{
-    const pw = prompt('Enter password to clear ALL transactions:');
+    const pw = prompt('Enter password to clear ALL transactions and inventory:');
     if(pw!=='osmak123'){ alert('Incorrect password.'); return; }
-    if(!confirm('This will permanently delete ALL transactions. Continue?')) return;
+    if(!confirm('This will permanently delete ALL transactions and ALL inventory balances. Continue?')) return;
     const db = loadDB();
     db.tx = [];
+    db.stock = [];
     saveDB(db);
+    ensureCategoryOptions();
     renderHistory();
-    alert('All transactions cleared.');
+    renderInventory();
+    alert('All transactions and inventory cleared.');
   };
 
   window.delTx = (txid)=>{
@@ -613,7 +614,6 @@
     const from = document.getElementById('anFrom');
     if(to && !to.value) to.value = todayStrTZ();
     if(from && !from.value){
-      // default to last 30 days
       const d = new Date(); d.setDate(d.getDate()-30);
       from.value = fmtDateTZ(d);
     }
@@ -633,8 +633,7 @@
     const db = loadDB();
 
     // Movement affecting CENTRAL:
-    //   IN: ToWard === CENTRAL  (stock in)
-    //   TRANSFER: FromWard === CENTRAL (issues to wards)
+    // IN to CENTRAL; TRANSFER from CENTRAL
     const mv = new Map(); // ItemCode -> qty
     db.tx.forEach(t=>{
       if(t.Deleted) return;
@@ -688,7 +687,6 @@
       const it = getItem(s.ItemCode); const crit = Number(it?.CriticalLevel||0); if(!crit) return;
       // Reconstruct running balance across range for CENTRAL only
       let balance = 0;
-      // approximate opening: current - net movements within range
       const cur = s.Qty||0;
       let net=0;
       db.tx.forEach(t=>{
@@ -741,8 +739,8 @@
     if(fTB) fTB.innerHTML = fast.map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.qty}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No movement.</td></tr>';
     if(sTB) sTB.innerHTML = slow.map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>0</td></tr>`).join('') || '<tr><td colspan="2" class="hint">All items moved in range.</td></tr>';
     if(cTB) cTB.innerHTML = critRows.map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.qty}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No items at/below critical.</td></tr>';
-    if(agTB) agTB.innerHTML = agTB ? agingRows.slice(0,20).map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.days===Infinity?'—':x.days}</td></tr>`).join('') : '';
-    if(brTB) brTB.innerHTML = brTB ? breachRows.slice(0,20).map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.days}</td></tr>`).join('') : '';
+    if(agTB) agTB.innerHTML = agingRows.slice(0,20).map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.days===Infinity?'—':x.days}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No on-hand stock.</td></tr>';
+    if(brTB) brTB.innerHTML = breachRows.slice(0,20).map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.days}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No breaches in range.</td></tr>';
 
     if(wtBody){
       const entries = Array.from(totalsByWard.entries()).sort((a,b)=>b[1]-a[1]);
