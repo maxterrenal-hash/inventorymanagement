@@ -221,3 +221,49 @@ window.addEventListener('DOMContentLoaded', renderApp);
 
 window.addEventListener('error', e => { console.error('JS error', e.message, e.error); });
 window.addEventListener('unhandledrejection', e => { console.error('Promise rejection', e.reason); });
+
+// --- Minimal login wiring (drop-in) ---
+window.addEventListener('DOMContentLoaded', () => {
+  const btn = document.querySelector('button.btn.primary');
+  if (!btn) return console.warn('Login button not found at DOMContentLoaded');
+
+  btn.addEventListener('click', async () => {
+    const api = window.APP_CONFIG?.API_URL;
+    const username = document.getElementById('username')?.value?.trim() || '';
+    const password = document.getElementById('password')?.value || '';
+    if (!api) return alert('API URL not set in index.html');
+    if (!username || !password) return alert('Enter username and password');
+
+    try {
+      const r = await fetch(api, {
+        method: 'POST',
+        headers: {'Content-Type': 'text/plain'},
+        body: JSON.stringify({ action: 'login', payload: { username, password } })
+      });
+      const j = await r.json();
+      if (!j.ok) return alert(j.error || 'Login failed');
+
+      // Save session (simple + works)
+      sessionStorage.setItem('token', j.data.token);
+      sessionStorage.setItem('role', j.data.role);
+      sessionStorage.setItem('wardCode', j.data.wardCode || '');
+      sessionStorage.setItem('username', j.data.username);
+
+      // If your app has a renderApp/state, use it; else just navigate.
+      if (typeof renderApp === 'function' && typeof state === 'object') {
+        state.token = j.data.token;
+        state.role = j.data.role;
+        state.wardCode = j.data.wardCode || '';
+        state.username = j.data.username;
+        state.menu = 'inventory';
+        renderApp();
+      } else {
+        // Fallback: change URL or reload so your app can pick up sessionStorage
+        window.location.hash = '#inventory';
+        location.reload();
+      }
+    } catch (e) {
+      alert('Network error: ' + e);
+    }
+  });
+});
