@@ -65,6 +65,7 @@
       <button id="btnBackup" title="Download backup JSON">Backup</button>
       <button id="btnRestore" title="Restore from JSON">Restore</button>
       <button id="btnSync" title="Sync to Google Sheets">Sync</button>
+      <button id="btnPing" title="Test connectivity">Ping</button>
       <button id="btnTests" title="Run self‑tests">Tests</button>
       <input id="restoreFile" type="file" accept="application/json" class="hidden" />
     </div>
@@ -637,10 +638,9 @@
 
   // ===== Sync to Google Sheets (one-way) =====
   const SYNC = {
-  url: 'https://script.google.com/macros/s/AKfycbzaV4cDkVrjnl_ouY6lXKiAkCftUt2u5is9Nj6SBDT7gL0dpfYQmtQ5n5Ja-m1jVpRh/exec',
-  token: 'YOUR_TOKEN'
-};
-
+    url: 'https://script.google.com/macros/s/AKfycby8FJFFDzO8xxwg12YKqlMVJA-YPYjSe0xXLzLEN4ClgbjoqBrHFVtIrn9d2dD5qetJ/exec',
+    token: 'CHANGE_ME' // must match Code.gs TOKEN
+  };
   async function syncToSheets(){
     const btn = document.getElementById('btnSync');
     try{
@@ -666,6 +666,16 @@
     }
   }
   document.getElementById('btnSync').onclick = syncToSheets;
+  document.getElementById('btnPing').onclick = async ()=>{
+    try{
+      const res = await fetch(SYNC.url, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify({action:'ping', token: SYNC.token}) });
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const data = await res.json();
+      alert('Ping: '+ (data.ok ? 'OK' : JSON.stringify(data)) );
+    }catch(err){
+      alert('Ping failed: '+err.message+ (location.protocol==='file:'?'\nTip: host over HTTPS (GitHub Pages), not file://':'') );
+    }
+  };
 
   </script>
 </body>
