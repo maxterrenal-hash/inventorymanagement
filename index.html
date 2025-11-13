@@ -19,5 +19,64 @@
     };
   </script>
   <script src="app.js"></script>
+
+  <script>
+/* ---- Ultra-simple login override ---- */
+(function attachLoginWiring(){
+  function bind(){
+    const btn = document.querySelector('button.btn.primary');
+    const uEl = document.getElementById('username');
+    const pEl = document.getElementById('password');
+    if (!btn || !uEl || !pEl) { setTimeout(bind, 300); return; } // wait until login UI exists
+
+    // prevent any form auto-submit
+    btn.type = 'button';
+
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const api = (window.APP_CONFIG && window.APP_CONFIG.API_URL) || '';
+      const username = (uEl.value || '').trim();
+      const password = pEl.value || '';
+
+      if (!api) { alert('API URL missing'); return; }
+      if (!username || !password) { alert('Enter username and password'); return; }
+
+      try {
+        const r = await fetch(api, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({ action: 'login', payload: { username, password } })
+        });
+        const j = await r.json().catch(()=>({ ok:false, error:'Invalid server JSON' }));
+
+        if (!j.ok) { alert('Login failed: ' + (j.error || 'Invalid credentials')); return; }
+
+        // Save and move on
+        sessionStorage.setItem('token', j.data.token);
+        sessionStorage.setItem('role', j.data.role);
+        sessionStorage.setItem('wardCode', j.data.wardCode || '');
+        sessionStorage.setItem('username', j.data.username || username);
+
+        // Use app state if present; else reload
+        if (window.state && typeof window.renderApp === 'function') {
+          state.token = j.data.token; state.role = j.data.role;
+          state.wardCode = j.data.wardCode || ''; state.username = j.data.username || username;
+          state.menu = 'inventory';
+          renderApp();
+        } else {
+          location.reload();
+        }
+      } catch (err) {
+        alert('Network error: ' + err);
+      }
+    }, { once:false });
+
+    console.log('Login wiring attached ✅');
+  }
+  bind();
+})();
+</script>
+
 </body>
 </html>
+
