@@ -1,142 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Ospital ng Makati Inventory Management System</title>
+  <link rel="icon" href="https://maxterrenal-hash.github.io/justculture/osmak-logo.png"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <style>
-    :root {
-      --osmak-green: #009a3e;
-      --osmak-green-dark: #007530;
-      --bg: #f5f5f5;
-      --card: #ffffff;
-      --text: #111827;
-    }
-
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-      background: var(--bg);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-    }
-
-    .login-box {
-      background: var(--card);
-      width: 320px;
-      padding: 2rem;
-      border-radius: 14px;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
-      text-align: center;
-    }
-
-    .logo {
-      width: 90px;
-      margin-bottom: 10px;
-    }
-
-    h2 {
-      color: var(--osmak-green);
-      margin: 0 0 1rem;
-    }
-
-    input {
-      width: 100%;
-      padding: 10px;
-      margin: 6px 0;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      font-size: 15px;
-    }
-
-    button {
-      width: 100%;
-      padding: 10px;
-      background: var(--osmak-green);
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 15px;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background: var(--osmak-green-dark);
-    }
-
-    .error {
-      color: #d00;
-      margin-top: 10px;
-      font-size: 14px;
-      min-height: 18px;
-    }
+    @font-face{font-family:Inter;src:local("Inter"),local("system-ui");}
   </style>
+  <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
-  <div class="login-box">
-    <img src="osmak-logo.png" alt="Ospital ng Makati" class="logo" />
-    <h2>Login</h2>
-    <input id="username" placeholder="Username" />
-    <input id="password" type="password" placeholder="Password" />
-    <button onclick="login()">Sign In</button>
-    <p id="msg" class="error"></p>
-  </div>
-
+  <div id="app"></div>
   <script>
-    const API_URL =
-      "https://script.google.com/macros/s/AKfycbw630o2gi57HydHNnHjucfOJLtEsCFEju-zMAF1pLK2IpAqtwlhv3ShUVbCN32kim4y/exec";
-
-    async function login() {
-      const u = document.getElementById("username").value.trim();
-      const p = document.getElementById("password").value.trim();
-      const msg = document.getElementById("msg");
-      msg.textContent = "Checking…";
-
-      if (!u || !p) {
-        msg.textContent = "Enter username and password.";
-        return;
-      }
-
-      try {
-        const res = await fetch(
-          `${API_URL}?action=login&username=${encodeURIComponent(
-            u
-          )}&password=${encodeURIComponent(p)}`,
-          {
-            method: "GET",
-            mode: "cors",
-            cache: "no-cache",
-          }
-        );
-
-        if (!res.ok) {
-          msg.textContent = `Server error (${res.status})`;
-          return;
-        }
-
-        const data = await res.json();
-
-        if (!data.success) {
-          msg.textContent = data.message || "Invalid login.";
-        } else {
-          msg.textContent = "";
-          if (data.role === "CSR") {
-            window.location.href = "csr.html";
-          } else if (data.role === "WARD") {
-            sessionStorage.setItem("ward", data.ward || "");
-            window.location.href = "ward.html";
-          } else {
-            msg.textContent = "Unknown role.";
-          }
-        }
-      } catch (err) {
-        console.error("Fetch error:", err);
-        msg.textContent = "Server unreachable.";
-      }
-    }
+    window.APP_CONFIG = {
+      API_URL: "YOUR_WEB_APP_URL" // e.g. https://script.google.com/macros/s/AKfy.../exec
+    };
   </script>
+  <script src="app.js"></script>
 </body>
 </html>
