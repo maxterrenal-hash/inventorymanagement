@@ -1,5 +1,5 @@
 /* ====== CONFIG ====== */
-const API = 'https://script.google.com/macros/s/AKfycbxzPDJAPjDZqFO37qaH5g826X8woFAP2zaF7yMdm06Us8FIAGCul0TD1iBUIsrhxOmp/exec'; // e.g. https://script.google.com/macros/s/AKfy.../exec
+const API = 'https://script.google.com/macros/s/AKfycby4yciKnuw-iMLIaj6ZPxWemyCNS2Ky-NbH5PjsFLqrQEOBvTjqQ_hnHcf37AAad9nS/exec'; // e.g. https://script.google.com/macros/s/AKfy.../exec
 
 /* ====== CORE HELPERS ====== */
 const $ = s => document.querySelector(s);
@@ -79,32 +79,38 @@ function initRegistration(){
 
 /* ====== AUTOCOMPLETE (shared) ====== */
 function setupTypeahead(inputEl, suggestEl, onPick){
+  async function run(q){
+    try{
+      const res = await getJSON('items', { q: q || '' });
+      suggestEl.innerHTML = '';
+      res.items.forEach(it=>{
+        const d = el('div',{}, `${it.ItemCode} — ${it.ItemName} (${it.Brand||'–'})`);
+        d.addEventListener('click', ()=>{
+          suggestEl.style.display='none';
+          inputEl.value = `${it.ItemCode} — ${it.ItemName}`;
+          onPick(it);
+        });
+        suggestEl.appendChild(d);
+      });
+      suggestEl.style.display = res.items.length ? 'block' : 'none';
+    }catch(_){ /* ignore */ }
+  }
+
   let timer = null;
   inputEl.addEventListener('input', ()=>{
     clearTimeout(timer);
-    timer = setTimeout(async ()=>{
-      const q = inputEl.value.trim();
-      if(!q){ suggestEl.style.display='none'; suggestEl.innerHTML=''; return; }
-      try{
-        const res = await getJSON('items', { q });
-        suggestEl.innerHTML = '';
-        res.items.forEach(it=>{
-          const d = el('div',{}, `${it.ItemCode} — ${it.ItemName} (${it.Brand||'–'})`);
-          d.addEventListener('click', ()=>{
-            suggestEl.style.display='none';
-            inputEl.value = `${it.ItemCode} — ${it.ItemName}`;
-            onPick(it);
-          });
-          suggestEl.appendChild(d);
-        });
-        suggestEl.style.display = res.items.length? 'block':'none';
-      }catch(_){}
-    }, 200);
+    timer = setTimeout(()=> run(inputEl.value.trim()), 150);
   });
+
+  inputEl.addEventListener('focus', ()=>{
+    if (!inputEl.value.trim()) run(''); // load full list on focus when empty
+  });
+
   document.addEventListener('click', (e)=>{
     if(!suggestEl.contains(e.target) && e.target!==inputEl) suggestEl.style.display='none';
   });
 }
+
 
 /* ====== LOG ====== */
 const logCart = [];
