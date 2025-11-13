@@ -64,6 +64,7 @@
     <div class="mini">
       <button id="btnBackup" title="Download backup JSON">Backup</button>
       <button id="btnRestore" title="Restore from JSON">Restore</button>
+      <button id="btnSync" title="Sync to Google Sheets">Sync</button>
       <button id="btnTests" title="Run self‑tests">Tests</button>
       <input id="restoreFile" type="file" accept="application/json" class="hidden" />
     </div>
@@ -482,7 +483,7 @@
     const tb = document.querySelector('#histTbl tbody');
     tb.innerHTML = rows.map(r=>{
       const time = r.Date.slice(11,19);
-      const delBtn = `<button class="btn" onclick="delTx('${r.TxID}')">Delete</button>`;
+      const delBtn = `<button class="btn" onclick=\"delTx('${r.TxID}')\">Delete</button>`;
       return `<tr><td>${time}</td><td>${r.Type}</td><td><b>${r.ItemCode}</b> — ${r.ItemName}</td><td class="t-right">${r.Qty}</td><td>${r.FromWard||''}</td><td>${r.ToWard||''}</td><td>${r.By||''}</td><td>${r.Deleted? '<span class=hint>deleted</span>' : delBtn}</td></tr>`
     }).join('') || '<tr><td colspan="8" class="hint">No transactions for selected date.</td></tr>';
   }
@@ -633,6 +634,30 @@
   // Menu wiring
   document.querySelectorAll('.menu button').forEach(b=> b.onclick = ()=> switchView(b.dataset.view));
   init();
+
+  // ===== Sync to Google Sheets (one-way) =====
+  const SYNC = {
+    url: 'https://script.google.com/macros/s/AKfycby8FJFFDzO8xxwg12YKqlMVJA-YPYjSe0xXLzLEN4ClgbjoqBrHFVtIrn9d2dD5qetJ/exec', // <-- replace
+    token: 'CHANGE_ME' // keep simple to avoid CORS preflight; validated server-side
+  };
+  async function syncToSheets(){
+    const btn = document.getElementById('btnSync');
+    try{
+      btn.disabled = true; btn.textContent = 'Syncing…';
+      const payload = loadDB();
+      const res = await fetch(SYNC.url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'syncAll', token: SYNC.token, payload})});
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const data = await res.json();
+      alert(`Synced: items ${data.itemsWritten}, stock ${data.stockWritten}, tx new ${data.txAppended}, wards ${data.wardsWritten}`);
+      localStorage.setItem(DB_KEY+':lastSync', new Date().toISOString());
+    }catch(err){
+      console.error(err); alert('Sync failed: '+ err.message);
+    }finally{
+      btn.disabled = false; btn.textContent = 'Sync';
+    }
+  }
+  document.getElementById('btnSync').onclick = syncToSheets;
+
   </script>
 </body>
 </html>
