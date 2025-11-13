@@ -6,7 +6,7 @@
   <title>Ospital ng Makati Inventory Management System (No-Backend)</title>
   <style>
     :root{
-      --osmak:#009a3e; --osmak-d:#007530; --bg:#f7f7f7; --card:#ffffff; --txt:#111827; --muted:#6b7280; --border:#e5e7eb; --danger:#dc2626; --accent:#2563eb;
+      --osmak:#009a3e; --osmak-d:#007530; --bg:#f7f7f7; --card:#ffffff; --txt:#111827; --muted:#6b7280; --border:#e5e7eb; --danger:#dc2626;
     }
     *{box-sizing:border-box}
     body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial,sans-serif;background:var(--bg);color:var(--txt)}
@@ -51,11 +51,10 @@
     .hint{font-size:12px;color:var(--muted)}
     .danger{color:var(--danger)}
     .ok{color:var(--osmak)}
-    .accent{color:var(--accent)}
+    .accent{color:var(--osmak)}
     .mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}
     .hidden{display:none}
 
-    /* show ~10 rows then scroll */
     .scrollbox{max-height:360px;overflow:auto;border:1px solid var(--border);border-radius:12px}
     button:focus-visible,.btn:focus-visible{outline:3px solid rgba(0,154,62,.35);outline-offset:2px}
     .scrollbox table{margin:0}
@@ -230,45 +229,45 @@
         </div>
         <div class="mt12 row">
           <div class="col card">
-            <h3>Fast Moving <button class="btn" data-export="anFast" title="Export CSV">Export</button></h3>
+            <h3>Fast Moving</h3>
             <table id="anFast"><thead><tr><th>Item</th><th class="t-right">Qty</th></tr></thead><tbody></tbody></table>
           </div>
           <div class="col card">
-            <h3>Slow / Unused <button class="btn" data-export="anSlow" title="Export CSV">Export</button></h3>
+            <h3>Slow / Unused</h3>
             <table id="anSlow"><thead><tr><th>Item</th><th class="t-right">Qty</th></tr></thead><tbody></tbody></table>
           </div>
           <div class="col card">
-            <h3>Critical Stock <button class="btn" data-export="anCritical" title="Export CSV">Export</button></h3>
+            <h3>Critical Stock</h3>
             <table id="anCritical"><thead><tr><th>Item</th><th class="t-right">Qty</th></tr></thead><tbody></tbody></table>
           </div>
           <div class="col card">
-            <h3>Transfers by Ward <button class="btn" data-export="anWardTotals" title="Export CSV">Export</button></h3>
+            <h3>Transfers by Ward</h3>
             <table id="anWardTotals"><thead><tr><th>Ward</th><th class="t-right">Total Qty</th><th class="t-right">Distinct Items</th></tr></thead><tbody></tbody></table>
           </div>
           <div class="col card">
-            <h3>Items Transferred → <span id="anWardLabel">(any)</span> <button class="btn" data-export="anWardItems" title="Export CSV">Export</button></h3>
+            <h3>Items Transferred → <span id="anWardLabel">(any)</span></h3>
             <table id="anWardItems"><thead><tr><th>Item</th><th class="t-right">Qty</th></tr></thead><tbody></tbody></table>
           </div>
         </div>
         <div class="mt12 row">
           <div class="col card">
-            <h3>Stock Turnover <button class="btn" data-export="anTurnover" title="Export CSV">Export</button></h3>
+            <h3>Stock Turnover</h3>
             <table id="anTurnover"><thead><tr><th>Item</th><th class="t-right">Turnover</th><th class="t-right">Issues</th></tr></thead><tbody></tbody></table>
           </div>
           <div class="col card">
-            <h3>Days of Supply <button class="btn" data-export="anDoS" title="Export CSV">Export</button></h3>
+            <h3>Days of Supply</h3>
             <table id="anDoS"><thead><tr><th>Item</th><th class="t-right">Days</th><th class="t-right">On-hand</th></tr></thead><tbody></tbody></table>
           </div>
           <div class="col card">
-            <h3>Top Consumers (wards) <button class="btn" data-export="anTopCons" title="Export CSV">Export</button></h3>
+            <h3>Top Consumers (wards)</h3>
             <table id="anTopCons"><thead><tr><th>Ward</th><th class="t-right">Qty</th></tr></thead><tbody></tbody></table>
           </div>
           <div class="col card">
-            <h3>Dead Stock Aging <button class="btn" data-export="anDeadAging" title="Export CSV">Export</button></h3>
+            <h3>Dead Stock Aging</h3>
             <table id="anDeadAging"><thead><tr><th>Item</th><th class="t-right">Days Since Move</th></tr></thead><tbody></tbody></table>
           </div>
           <div class="col card">
-            <h3>Critical Breach Duration <button class="btn" data-export="anBreach" title="Export CSV">Export</button></h3>
+            <h3>Critical Breach Duration</h3>
             <table id="anBreach"><thead><tr><th>Item</th><th class="t-right">Days Below Crit</th></tr></thead><tbody></tbody></table>
           </div>
         </div>
@@ -280,10 +279,9 @@
   // ===== Simple localStorage DB =====
   const DB_KEY = 'osmak_ims_v1';
   const CENTRAL = 'CENTRAL';
-  const TZ = 'Asia/Manila'; // display + date filters use Manila time
+  const TZ = 'Asia/Manila';
 
-  const nowISO = () => new Date().toISOString(); // stored in UTC ISO
-  const todayStr = (d=new Date()) => d.toISOString().slice(0,10); // UTC
+  const nowISO = () => new Date().toISOString();        // stored UTC
   const fmtDateTZ = (d, tz=TZ) => new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
   const fmtTimeTZ = (d, tz=TZ) => new Intl.DateTimeFormat('en-GB',{timeZone:tz,hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(d);
   const todayStrTZ = (tz=TZ) => fmtDateTZ(new Date(), tz);
@@ -312,7 +310,7 @@
   function findItemByQuery(q){
     const db = loadDB();
     const s = (q||'').trim().toLowerCase();
-    if(!s) return db.items.slice(0,50);
+    if(!s) return [];
     return db.items.filter(it=>[it.ItemCode,it.ItemName,it.Brand,it.Category].some(v=> (v||'').toLowerCase().includes(s))).slice(0,50);
   }
   function getItem(code){ return loadDB().items.find(x=>x.ItemCode===code) }
@@ -373,7 +371,7 @@
       if(sec) sec.classList.toggle('hidden', v!==key);
     });
     if(key==='inventory') renderInventory();
-    if(key==='history'){ document.getElementById('histDate').value = todayStrTZ(); renderHistory(); }
+    if(key==='history'){ const d = document.getElementById('histDate'); if(d) d.value = todayStrTZ(); renderHistory(); }
     if(key==='analysis') runAnalysis();
     if(key==='registration') renderItems();
     if(key==='log') renderLogItems();
@@ -397,9 +395,9 @@
     try{
       const rec = upsertItem({ItemCode:code, ItemName:name, Brand:brand, Category:cat, Remarks:rem, CriticalLevel:crit});
       document.getElementById('regHint').textContent = `Saved ${rec.ItemCode}`;
-      ['regCode','regName','regBrand','regCat','regRemarks','regCrit'].forEach(id=>document.getElementById(id).value='';
+      ['regCode','regName','regBrand','regCat','regRemarks','regCrit'].forEach(id => document.getElementById(id).value = '');
       ensureCategoryOptions();
-      renderItems(); if(document.getElementById('logItemsTbl')) renderLogItems(); renderInventory();
+      renderItems(); renderLogItems(); renderTrItems(); renderInventory();
     }catch(e){ document.getElementById('regHint').textContent = e.message; }
   };
 
@@ -410,7 +408,7 @@
     function refresh(){
       const q = inp.value;
       const res = findItemByQuery(q);
-      if(!q && res.length===0){ list.classList.add('hidden'); return }
+      if(!q || res.length===0){ list.classList.add('hidden'); list.innerHTML=''; return }
       list.innerHTML = res.map(it=>`<div class="sugg-item" data-code="${it.ItemCode}"><b>${it.ItemCode}</b> — ${it.ItemName}${it.Brand? ' • ' + it.Brand:''}</div>`).join('');
       list.classList.toggle('hidden', res.length===0);
       Array.from(list.children).forEach(div=> div.onclick = () => { onPick(div.dataset.code); list.classList.add('hidden'); });
@@ -591,7 +589,7 @@
     renderHistory(); renderInventory();
   };
 
-  // Export CSV (History)
+  // Export CSV (History only)
   document.getElementById('btnExport').onclick = ()=>{
     const d = document.getElementById('histDate').value || todayStrTZ();
     const ward = document.getElementById('histWard').value;
@@ -612,7 +610,7 @@
     const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-days);
     const db = loadDB();
 
-    // Movement (fast/slow) within window — all types
+    // Movement (fast/slow)
     const mv = new Map();
     db.tx.forEach(t=>{
       const dt = new Date(t.Date);
@@ -625,7 +623,7 @@
     const fast = arr.sort((a,b)=>b.qty-a.qty).slice(0,10);
     const slow = items.filter(it=>!mv.has(it.ItemCode)).slice(0,10).map(it=>({code:it.ItemCode,name:it.ItemName,qty:0}));
 
-    // Critical for selected ward (or CENTRAL if none)
+    // Critical for selected ward (or CENTRAL)
     const wardForCrit = ward || CENTRAL;
     const critRows = db.stock
       .filter(s=> s.Ward===wardForCrit)
@@ -634,7 +632,7 @@
       .sort((a,b)=>a.qty-b.qty)
       .slice(0,20);
 
-    // Transfers by ward and items per ward (destination-based)
+    // Transfers by ward and items per ward
     const totalsByWard = new Map();
     const itemsByWard = new Map();
     db.tx.forEach(t=>{
@@ -649,7 +647,7 @@
       itemsByWard.set(w, m);
     });
 
-    // Opening qty estimator for window (per ward+item)
+    // Opening qty estimator for window
     function computeOpeningQty(itemCode, w){
       const cur = db.stock.find(s=>s.ItemCode===itemCode && s.Ward===w)?.Qty || 0;
       let net=0;
@@ -707,7 +705,7 @@
     });
     agingRows.sort((a,b)=> (b.days===Infinity?1:b.days) - (a.days===Infinity?1:a.days));
 
-    // Critical breach duration (simulate within window)
+    // Critical breach duration
     const breachRows=[];
     db.stock.filter(s=>s.Ward===wardForCrit).forEach(s=>{
       const it = getItem(s.ItemCode); const crit = Number(it?.CriticalLevel||0); if(!crit) return;
@@ -727,7 +725,7 @@
     });
     breachRows.sort((a,b)=>b.days-a.days);
 
-    // Render core tables
+    // Render
     const fTB = document.querySelector('#anFast tbody');
     const sTB = document.querySelector('#anSlow tbody');
     const cTB = document.querySelector('#anCritical tbody');
@@ -735,7 +733,6 @@
     if(sTB) sTB.innerHTML = slow.map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.qty}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">All items moved in window.</td></tr>';
     if(cTB) cTB.innerHTML = critRows.map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.qty}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No items at/below critical.</td></tr>';
 
-    // Transfers by Ward
     const wtBody = document.querySelector('#anWardTotals tbody');
     if(wtBody){
       const entries = Array.from(totalsByWard.entries()).sort((a,b)=>b[1]-a[1]);
@@ -745,7 +742,6 @@
       }).join('') || '<tr><td colspan="3" class="hint">No transfers in window.</td></tr>';
     }
 
-    // Items per selected ward
     const wl = document.getElementById('anWardLabel'); if(wl) wl.textContent = ward || '(any)';
     const wiBody = document.querySelector('#anWardItems tbody');
     if(wiBody){
@@ -758,7 +754,6 @@
       }
     }
 
-    // New analytics tables
     const tTB = document.querySelector('#anTurnover tbody');
     if(tTB){ tTB.innerHTML = turnoverRows.slice(0,15).map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.turnover.toFixed(2)}</td><td class='t-right'>${x.issued}</td></tr>`).join('') || '<tr><td colspan="3" class="hint">No issues in window.</td></tr>'; }
     const dTB = document.querySelector('#anDoS tbody');
@@ -771,34 +766,8 @@
     if(brTB){ brTB.innerHTML = breachRows.slice(0,20).map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.days}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No breaches in window.</td></tr>'; }
   }
 
-  // ===== Analysis Export (all analysis tables) =====
-  function tableToCSV(id){
-    const tbl = document.getElementById(id); if(!tbl) return '';
-    const rows = Array.from(tbl.querySelectorAll('tr'));
-    return rows.map(tr => Array.from(tr.children)
-      .map(td => '"' + String(td.innerText||'').replaceAll('"','""') + '"')
-      .join(',')
-    ).join('\n');
-  }
-  function downloadCSV(csv, name){
-    const blob = new Blob([csv], {type:'text/csv'});
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click();
-  }
-  document.addEventListener('click', (e)=>{
-    const btn = e.target.closest('[data-export]'); if(!btn) return;
-    const id = btn.getAttribute('data-export');
-    const csv = tableToCSV(id);
-    const ward = (document.getElementById('anWard')?.value||'any') || 'any';
-    const days = document.getElementById('anDays')?.value || '30';
-    downloadCSV(csv, `${id}_${ward}_${days}d.csv`);
-  });
-
-  // ===== Wards mgmt =====
-  function renderWardList(){
-    const el = document.getElementById('wardList'); if(!el) return;
-    // Hidden per request (no pill list in UI)
-    el.innerHTML = '';
-  }
+  // ===== Wards mgmt (no pill list) =====
+  function renderWardList(){ const el = document.getElementById('wardList'); if(el) el.innerHTML = ''; }
   document.getElementById('btnWardAdd').onclick = ()=>{
     const name = (document.getElementById('wardNew').value||'').trim().toUpperCase();
     if(!name || name===CENTRAL) return;
@@ -807,13 +776,13 @@
     saveDB(db); document.getElementById('wardNew').value=''; ensureWardOptions(); renderWardList();
   };
 
-  // ===== Backup / Restore =====
+  // ===== Backup / Restore / Sync placeholder =====
   document.getElementById('btnBackup').onclick = ()=>{
     const db = loadDB();
     const blob = new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `osmak_ims_backup_${todayStr()}.json`;
+    a.download = `osmak_ims_backup_${fmtDateTZ(new Date())}.json`;
     a.click();
   };
   document.getElementById('btnRestore').onclick = ()=> document.getElementById('restoreFile').click();
@@ -823,10 +792,10 @@
     rd.onload = ()=>{ try{ localStorage.setItem(DB_KEY, rd.result); init(); alert('Restore complete'); }catch{ alert('Invalid file') } }
     rd.readAsText(f);
   };
+  document.getElementById('btnSync').onclick = ()=> alert('Sync is disabled in no-backend mode.');
 
   // ===== Button binds / init =====
   document.getElementById('btnAnRun').onclick = runAnalysis;
-  document.getElementById('btnSync').onclick = ()=> alert('Sync is disabled in no-backend mode.');
 
   function init(){
     ensureWardOptions(); ensureCategoryOptions();
