@@ -1,5 +1,5 @@
 /* ====== CONFIG ====== */
-const API = 'https://script.google.com/macros/s/AKfycbxV-q6-l9maz034eJXk7suC3lHUynjClzDZYr4yHd7UKjeQY_CvLDlFDrqK3NzQj4I/exec'; // e.g. https://script.google.com/macros/s/AKfy.../exec
+const API = 'https://script.google.com/macros/s/AKfycbxzPDJAPjDZqFO37qaH5g826X8woFAP2zaF7yMdm06Us8FIAGCul0TD1iBUIsrhxOmp/exec'; // e.g. https://script.google.com/macros/s/AKfy.../exec
 
 /* ====== CORE HELPERS ====== */
 const $ = s => document.querySelector(s);
@@ -41,16 +41,14 @@ async function getJSON(path, params={}){
   if(!res.ok) throw new Error('HTTP '+res.status);
   return res.json();
 }
-// REPLACE your current postJSON with this
+
+/* PATCHED: simple POST (form-encoded) to avoid CORS preflight */
 async function postJSON(path, data){
-  // Don't set Content-Type; let the browser default to form-encoded (simple request)
   const qs = new URLSearchParams({ fn: path });
-  // Flatten data; stringify objects/arrays (e.g., cart) so Apps Script can parse
   const form = new URLSearchParams();
   Object.entries(data || {}).forEach(([k, v]) => {
     form.append(k, (typeof v === 'object') ? JSON.stringify(v) : String(v));
   });
-
   const res = await fetch(API + '?' + qs.toString(), {
     method: 'POST',
     body: form
@@ -58,7 +56,6 @@ async function postJSON(path, data){
   if (!res.ok) throw new Error('HTTP ' + res.status);
   return res.json();
 }
-
 
 /* ====== REGISTRATION ====== */
 function initRegistration(){
