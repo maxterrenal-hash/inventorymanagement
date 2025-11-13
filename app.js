@@ -41,16 +41,24 @@ async function getJSON(path, params={}){
   if(!res.ok) throw new Error('HTTP '+res.status);
   return res.json();
 }
+// REPLACE your current postJSON with this
 async function postJSON(path, data){
-  const qs = new URLSearchParams({fn:path});
-  const res = await fetch(API+'?'+qs.toString(), {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ ...data, fn:path })
+  // Don't set Content-Type; let the browser default to form-encoded (simple request)
+  const qs = new URLSearchParams({ fn: path });
+  // Flatten data; stringify objects/arrays (e.g., cart) so Apps Script can parse
+  const form = new URLSearchParams();
+  Object.entries(data || {}).forEach(([k, v]) => {
+    form.append(k, (typeof v === 'object') ? JSON.stringify(v) : String(v));
   });
-  if(!res.ok) throw new Error('HTTP '+res.status);
+
+  const res = await fetch(API + '?' + qs.toString(), {
+    method: 'POST',
+    body: form
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
   return res.json();
 }
+
 
 /* ====== REGISTRATION ====== */
 function initRegistration(){
