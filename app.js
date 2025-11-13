@@ -1,277 +1,262 @@
-// Auto-pick up saved session
-window.state = window.state || {};
-state.token = state.token || sessionStorage.getItem('token') || '';
-state.role = state.role || sessionStorage.getItem('role') || '';
-state.wardCode = state.wardCode || sessionStorage.getItem('wardCode') || '';
-state.username = state.username || sessionStorage.getItem('username') || '';
+/* ====== CONFIG ====== */
+const API = 'YOUR_APPS_SCRIPT_EXEC_URL_HERE'; // e.g. https://script.google.com/macros/s/AKfy.../exec
 
-
-// --- API WRAPPER ---
-const API_URL = window.APP_CONFIG.API_URL;
-async function api(action, payload={}, withAuth=true){
-  const body = JSON.stringify({ action, payload, session: withAuth ? state.token : '' });
-  const res = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, body });
-  if (!res.ok) throw new Error('Network error');
-  const json = await res.json();
-  if (!json.ok) throw new Error(json.error || 'Server error');
-  return json.data;
-}
-
-// --- APP STATE ---
-const state = {
-  token: '',
-  role: '',      // CSR|WARD
-  wardCode: '',  // for WARD
-  username: '',
-  menu: '',      // selected menu
+/* ====== CORE HELPERS ====== */
+const $ = s => document.querySelector(s);
+const el = (t, attrs={}, ...kids) => {
+  const x = document.createElement(t);
+  Object.entries(attrs).forEach(([k,v])=> (k==='class')? x.className=v : (k==='html')? x.innerHTML=v : x.setAttribute(k,v));
+  kids.forEach(k=> x.appendChild(typeof k==='string'? document.createTextNode(k):k));
+  return x;
 };
+const fmt = n => new Intl.NumberFormat().format(n);
 
-// --- UTIL ---
-const $ = (sel,root=document)=>root.querySelector(sel);
-function el(tag, attrs={}, children=[]){
-  const n = document.createElement(tag);
-  Object.entries(attrs).forEach(([k,v])=>{
-    if (k==='class') n.className = v;
-    else if (k==='html') n.innerHTML = v;
-    else n.setAttribute(k,v);
+/* ====== NAV ====== */
+const views = ['registration','log','transfer','inventory','history','analysis'];
+const main = $('#main');
+document.querySelectorAll('nav button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    showView(b.dataset.view);
   });
-  (Array.isArray(children)?children:[children]).filter(Boolean).forEach(c=>{
-    if (typeof c==='string') n.appendChild(document.createTextNode(c));
-    else n.appendChild(c);
+});
+function showView(name){
+  const tpl = document.getElementById('tpl-'+name);
+  main.innerHTML = '';
+  main.appendChild(tpl.content.cloneNode(true));
+  if(name==='registration') initRegistration();
+  if(name==='log') initLog();
+  if(name==='transfer') initTransfer();
+  if(name==='inventory') initInventory();
+  if(name==='history') initHistory();
+  if(name==='analysis') initAnalysis();
+}
+showView('registration');
+
+/* ====== API ====== */
+async function getJSON(path, params={}){
+  const qs = new URLSearchParams({fn:path, ...params});
+  const res = await fetch(API+'?'+qs.toString(), { method:'GET' });
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  return res.json();
+}
+async function postJSON(path, data){
+  const qs = new URLSearchParams({fn:path});
+  const res = await fetch(API+'?'+qs.toString(), {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ ...data, fn:path })
   });
-  return n;
-}
-function toast(msg, ms=2200){
-  const t = el('div',{class:'toast'},msg);
-  document.body.appendChild(t);
-  setTimeout(()=>t.remove(), ms);
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  return res.json();
 }
 
-// --- VIEWS ---
-function viewLogin(){
-  const app = $('#app'); app.innerHTML='';
-  const logo = 'https://maxterrenal-hash.github.io/justculture/osmak-logo.png';
-
-  const card = el('div',{class:'card',style:'min-width:340px;'},[
-    el('div',{class:'row',style:'align-items:center;gap:12px;'},[
-      el('img',{src:logo,alt:'Osmak',style:'width:40px;height:40px;border-radius:8px;border:1px solid #eee'}),
-      el('div',{class:'h1'},'Ospital ng Makati Inventory'),
-    ]),
-    el('div',{class:'col',style:'margin-top:12px'},[
-      el('input',{id:'username',class:'input',placeholder:'Username'}),
-      el('input',{id:'password',class:'input',placeholder:'Password',type:'password'}),
-      el('select',{id:'role',class:'input'},[
-        el('option',{value:'CSR'},'CSR'),
-        el('option',{value:'WARD'},'Ward'),
-      ]),
-      el('button',{class:'btn primary',onclick:async()=>{
-        const username = $('#username').value.trim();
-        const password = $('#password').value;
-        const rolePick = $('#role').value; // informational
-
-        try{
-          const data = await api('login',{ username, password }, false);
-          // server decides role; we ignore dropdown for security
-          state.token = data.token; state.role = data.role; state.wardCode = data.wardCode||''; state.username = data.username;
-          state.menu = (state.role==='CSR') ? 'inventory' : 'inventory';
-          renderApp();
-          toast('Logged in');
-        }catch(err){ toast(err.message||String(err)); }
-      }},'Login'),
-      el('div',{class:'note'},'Tip: Use demo accounts seeded by the backend (csr1/test123 or eruser/test123) while testing.')
-    ])
-  ]);
-
-  const wrap = el('div',{class:'center'},card);
-  app.appendChild(wrap);
-}
-
-function layoutShell(){
-  const app = $('#app'); app.innerHTML='';
-  const sidebar = el('div',{class:'sidebar'},[
-    el('div',{class:'brand'},[
-      el('img',{src:'https://maxterrenal-hash.github.io/justculture/osmak-logo.png',alt:'Osmak'}),
-      el('div',{},[
-        el('div',{},'Ospital ng Makati'),
-        el('div',{class:'note'},'Inventory Management'),
-      ])
-    ]),
-    el('div',{class:'menu',id:'menu'}),
-    el('div',{class:'userbar'},[
-      el('div',{}, state.username+(state.role==='WARD'?' • '+state.wardCode:'') ),
-      el('div',{class:'note'}, state.role==='CSR'?'CSR':'Ward'),
-      el('div',{style:'margin-top:8px'},[
-        el('button',{class:'btn ghost',onclick:()=>{ Object.assign(state,{token:'',role:'',wardCode:'',username:'',menu:''}); viewLogin(); }},'Logout')
-      ])
-    ])
-  ]);
-  const main = el('div',{class:'main',id:'main'},[]);
-  const root = el('div',{class:'layout'},[sidebar,main]);
-  app.appendChild(root);
-
-  const menu = $('#menu');
-  const itemsCSR = [
-    ['registration','Registration'],
-    ['log','Log'],
-    ['transfer','Transfer'],
-    ['inventory','Inventory'],
-    ['tx','Transaction History'],
-    ['analysis','Data Analysis']
-  ];
-  const itemsWard = [
-    ['registerPatient','Register Patient'],
-    ['charge','Charge'],
-    ['inventory','Inventory'],
-    ['tx','Transaction History'],
-    ['analysis','Data Analysis']
-  ];
-  const items = (state.role==='CSR') ? itemsCSR : itemsWard;
-  items.forEach(([key,label])=>{
-    const btn = el('button',{class: (state.menu===key?'active':''), onclick:()=>{ state.menu=key; renderMain(); }}, label);
-    menu.appendChild(btn);
-  });
-
-  renderMain();
-}
-
-function renderMain(){
-  const main = $('#main'); main.innerHTML='';
-  const titleMap = {
-    registration:'Item Registration',
-    log:'Log (Stock In)',
-    transfer:'Transfer',
-    inventory:'Inventory',
-    tx:'Transaction History',
-    analysis:'Data Analysis',
-    registerPatient:'Register Patient',
-    charge:'Charge'
-  };
-  main.appendChild(el('h2',{},titleMap[state.menu] || ''));
-  if (state.menu==='inventory') return viewInventory(main);
-  // Placeholders to prove the swapping works
-  main.appendChild(el('p',{class:'note'},'Module shell ready. Backend endpoints will be wired next.'));
-}
-
-async function viewInventory(main){
-  const toolbar = el('div',{class:'toolbar'},[]);
-  if (state.role==='CSR'){
-    // CSR can filter by location
-    const locSel = el('select',{class:'input',id:'invLoc'},[
-      el('option',{value:'ALL'},'All locations'),
-      el('option',{value:'CENTRAL'},'Central')
-    ]);
-    // Fetch wards for filter
+/* ====== REGISTRATION ====== */
+function initRegistration(){
+  $('#btn-save-item').addEventListener('click', async ()=>{
+    const payload = {
+      itemCode: $('#r-code').value,
+      itemName: $('#r-name').value,
+      brand: $('#r-brand').value,
+      category: $('#r-cat').value,
+      remarks: $('#r-remarks').value,
+      criticalLevel: Number($('#r-crit').value||0)
+    };
+    const msg = $('#reg-msg');
+    msg.textContent = 'Saving...';
     try{
-      const wards = await api('listWards',{});
-      wards.forEach(w=>locSel.appendChild(el('option',{value:w.WardCode},`${w.WardCode} — ${w.WardName}`)));
-    }catch(_){}
-    toolbar.appendChild(locSel);
-  } else {
-    toolbar.appendChild(el('span',{class:'badge green'}, `Ward: ${state.wardCode}`));
-  }
-  const search = el('input',{class:'input',placeholder:'Search item name/code/brand',style:'min-width:280px',id:'invSearch'});
-  const refreshBtn = el('button',{class:'btn'},'Refresh');
-  toolbar.appendChild(search);
-  toolbar.appendChild(refreshBtn);
-  main.appendChild(toolbar);
+      const r = await postJSON('additem', payload);
+      msg.textContent = r.ok? 'Saved ✅' : ('Error: '+r.error);
+    }catch(e){ msg.textContent = 'Error: '+e.message; }
+  });
+}
 
-  const table = el('table',{class:'table'});
-  const thead = el('thead',{}, el('tr',{},[
-    el('th',{},'Item Code'),
-    el('th',{},'Item Name'),
-    el('th',{},'Brand'),
-    el('th',{},'Location'),
-    el('th',{},'Qty'),
-    el('th',{},'Reorder'),
-    el('th',{},'Status')
-  ]));
-  const tbody = el('tbody',{});
-  table.appendChild(thead); table.appendChild(tbody);
-  main.appendChild(table);
+/* ====== AUTOCOMPLETE (shared) ====== */
+function setupTypeahead(inputEl, suggestEl, onPick){
+  let timer = null;
+  inputEl.addEventListener('input', ()=>{
+    clearTimeout(timer);
+    timer = setTimeout(async ()=>{
+      const q = inputEl.value.trim();
+      if(!q){ suggestEl.style.display='none'; suggestEl.innerHTML=''; return; }
+      try{
+        const res = await getJSON('items', { q });
+        suggestEl.innerHTML = '';
+        res.items.forEach(it=>{
+          const d = el('div',{}, `${it.ItemCode} — ${it.ItemName} (${it.Brand||'–'})`);
+          d.addEventListener('click', ()=>{
+            suggestEl.style.display='none';
+            inputEl.value = `${it.ItemCode} — ${it.ItemName}`;
+            onPick(it);
+          });
+          suggestEl.appendChild(d);
+        });
+        suggestEl.style.display = res.items.length? 'block':'none';
+      }catch(_){}
+    }, 200);
+  });
+  document.addEventListener('click', (e)=>{
+    if(!suggestEl.contains(e.target) && e.target!==inputEl) suggestEl.style.display='none';
+  });
+}
+
+/* ====== LOG ====== */
+const logCart = [];
+function initLog(){
+  let selected = null;
+  setupTypeahead($('#l-search'), $('#l-suggestions'), it=> selected = it);
+  $('#l-add').addEventListener('click', ()=>{
+    if(!selected){ alert('Pick an item from suggestions.'); return; }
+    const qty = Number($('#l-qty').value||0);
+    if(qty<=0){ alert('Qty must be > 0'); return; }
+    const notes = $('#l-notes').value.trim();
+    logCart.push({ itemCode:selected.ItemCode, itemName:selected.ItemName, qty, notes });
+    selected=null; $('#l-search').value=''; $('#l-qty').value=1; $('#l-notes').value='';
+    renderCart('#l-cart', logCart, (i)=>{ logCart.splice(i,1); renderCart('#l-cart', logCart); });
+  });
+  $('#l-confirm').addEventListener('click', async ()=>{
+    const msg=$('#l-msg');
+    if(!logCart.length){ msg.textContent='Cart empty'; return; }
+    msg.textContent='Posting...';
+    try{
+      const r = await postJSON('stockin', { cart: logCart });
+      if(r.ok){ msg.textContent = `Logged ${r.count} item(s) ✅`; logCart.length=0; renderCart('#l-cart', logCart); }
+      else{ msg.textContent = 'Error: '+r.error; }
+    }catch(e){ msg.textContent = 'Error: '+e.message; }
+  });
+}
+function renderCart(sel, cart, onDel){
+  const t = document.querySelector(sel);
+  t.innerHTML = '<tr><th>Code</th><th>Name</th><th>Qty</th><th>Notes</th><th></th></tr>' +
+    cart.map((r,i)=>`<tr><td>${r.itemCode}</td><td>${r.itemName}</td><td>${r.qty}</td><td>${r.notes||''}</td>
+    <td><button class="secondary" data-i="${i}">✖</button></td></tr>`).join('');
+  t.querySelectorAll('button[data-i]').forEach(b=> b.onclick=()=>onDel && onDel(Number(b.dataset.i)));
+}
+
+/* ====== TRANSFER ====== */
+const trCart = [];
+async function initTransfer(){
+  let wards = [];
+  const wardSel = $('#t-ward');
+  const msg = $('#t-msg');
+  msg.textContent = 'Loading wards...';
+  try{
+    const w = await getJSON('wards');
+    wards = w.wards||[];
+    wardSel.innerHTML = wards.map(x=>`<option value="${x}">${x}</option>`).join('');
+    msg.textContent = '';
+  }catch(e){ msg.textContent = 'Failed to load wards: '+e.message; }
+
+  let selected = null;
+  setupTypeahead($('#t-search'), $('#t-suggestions'), it=> selected = it);
+  $('#t-add').addEventListener('click', ()=>{
+    if(!selected){ alert('Pick an item from suggestions.'); return; }
+    const qty = Number($('#t-qty').value||0);
+    if(qty<=0){ alert('Qty must be > 0'); return; }
+    const ward = wardSel.value;
+    const notes = $('#t-notes').value.trim();
+    trCart.push({ itemCode:selected.ItemCode, itemName:selected.ItemName, qty, ward, notes });
+    selected=null; $('#t-search').value=''; $('#t-qty').value=1; $('#t-notes').value='';
+    renderCart('#t-cart', trCart, (i)=>{ trCart.splice(i,1); renderCart('#t-cart', trCart); });
+  });
+  $('#t-confirm').addEventListener('click', async ()=>{
+    if(!trCart.length){ msg.textContent='Cart empty'; return; }
+    msg.textContent='Transferring...';
+    try{
+      const r = await postJSON('transfer', { cart: trCart });
+      if(r.ok){ msg.textContent = `Transferred ${r.count} item(s) ✅`; trCart.length=0; renderCart('#t-cart', trCart); }
+      else{ msg.textContent = 'Error: '+r.error; }
+    }catch(e){ msg.textContent = 'Error: '+e.message; }
+  });
+}
+
+/* ====== INVENTORY (CENTRAL ONLY) ====== */
+async function initInventory(){
+  const tbl = $('#i-table');
+  const search = $('#i-search');
+  const refresh = async ()=>{
+    tbl.innerHTML = '<tr><td>Loading...</td></tr>';
+    try{
+      const res = await getJSON('inventory', { search: search.value||'' });
+      tbl.innerHTML = '<tr><th>Code</th><th>Name</th><th>Brand</th><th>Category</th><th>Qty</th><th>Critical</th></tr>' +
+        res.items.map(r=>{
+          const crit = r.Qty <= (r.CriticalLevel||0);
+          return `<tr class="${crit?'critical':''}">
+            <td>${r.ItemCode}</td><td>${r.ItemName}</td><td>${r.Brand||''}</td><td>${r.Category||''}</td>
+            <td>${fmt(r.Qty)}</td><td>${r.CriticalLevel||0}</td></tr>`;
+        }).join('');
+    }catch(e){ tbl.innerHTML = `<tr><td>Error: ${e.message}</td></tr>`; }
+  };
+  $('#i-refresh').onclick = refresh;
+  search.oninput = ()=>{ clearTimeout(window.__it); window.__it=setTimeout(refresh, 200); };
+  refresh();
+}
+
+/* ====== HISTORY ====== */
+function ymd(d){ return d.toISOString().slice(0,10); }
+async function initHistory(){
+  const from = $('#h-from'), to = $('#h-to'), t = $('#h-table'), msg=$('#h-msg');
+  const d = new Date(); const s = new Date(d.getFullYear(), d.getMonth(), 1);
+  from.value = ymd(s); to.value = ymd(new Date(d.getFullYear(), d.getMonth()+1, 0));
 
   async function load(){
-    const q = $('#invSearch').value.trim();
-    const loc = $('#invLoc') ? $('#invLoc').value : 'ALL';
+    msg.textContent='Loading...';
     try{
-      const data = await api('getInventory',{ location: loc, query: q });
-      tbody.innerHTML='';
-      if (!data.length){
-        tbody.appendChild(el('tr',{}, el('td',{colspan:'7'},'No inventory.')));
-        return;
-      }
-      data.forEach(r=>{
-        const critical = (r.ReorderPoint!=='' && Number(r.Qty)<=Number(r.ReorderPoint));
-        const tr = el('tr',{},[
-          el('td',{},r.ItemCode||''),
-          el('td',{},r.ItemName||''),
-          el('td',{},r.Brand||''),
-          el('td',{},r.Location||''),
-          el('td',{},String(r.Qty)),
-          el('td',{}, r.ReorderPoint===''?'':String(r.ReorderPoint)),
-          el('td',{}, critical? 'CRITICAL' : 'OK')
-        ]);
-        tbody.appendChild(tr);
+      const res = await getJSON('transactions',{ dateFrom:from.value, dateTo:to.value });
+      t.innerHTML = '<tr><th>When</th><th>Type</th><th>Code</th><th>Name</th><th>Qty</th><th>From</th><th>To</th><th>Notes</th><th></th></tr>' +
+        res.transactions.map(r=>`<tr>
+        <td>${r.DateTime}</td><td>${r.Type}</td><td>${r.ItemCode}</td><td>${r.ItemName}</td>
+        <td>${r.Qty}</td><td>${r.FromWard||''}</td><td>${r.ToWard||''}</td><td>${r.Notes||''}</td>
+        <td>${String(r.Deleted)==='true'?'—':`<button class="secondary" data-tx="${r.TxID}">🗑</button>`}</td></tr>`).join('');
+      t.querySelectorAll('button[data-tx]').forEach(b=>{
+        b.onclick = async ()=>{
+          if(!confirm('Delete this transaction? Stock will be auto-reversed.')) return;
+          msg.textContent='Deleting...';
+          try{
+            const r = await postJSON('deletetx', { txId:b.dataset.tx });
+            msg.textContent = r.ok? 'Deleted ✅' : ('Error: '+r.error);
+            await load();
+          }catch(e){ msg.textContent = 'Error: '+e.message; }
+        };
       });
-    }catch(err){ toast(err.message||String(err)); }
+      msg.textContent='';
+    }catch(e){ msg.textContent='Error: '+e.message; }
   }
-  refreshBtn.onclick = load;
-  search.oninput = ()=>{ clearTimeout(search._t); search._t=setTimeout(load,250); };
-  if ($('#invLoc')) $('#invLoc').onchange = load;
+
+  $('#h-load').onclick = load;
+  $('#h-export').onclick = ()=>{
+    const url = `${API}?fn=export&dateFrom=${from.value}&dateTo=${to.value}`;
+    window.open(url, '_blank');
+  };
   load();
 }
 
-// --- ROOT RENDER ---
-function renderApp(){
-  if (!state.token) return viewLogin();
-  return layoutShell();
-}
-window.addEventListener('DOMContentLoaded', renderApp);
+/* ====== ANALYSIS ====== */
+async function initAnalysis(){
+  const from = $('#a-from'), to = $('#a-to');
+  const d=new Date(); const s=new Date(d.getFullYear(),d.getMonth(),1);
+  from.value = ymd(s); to.value = ymd(new Date(d.getFullYear(), d.getMonth()+1, 0));
 
-window.addEventListener('error', e => { console.error('JS error', e.message, e.error); });
-window.addEventListener('unhandledrejection', e => { console.error('Promise rejection', e.reason); });
+  const run = async ()=>{
+    const res = await getJSON('analytics',{ dateFrom:from.value, dateTo:to.value });
+    $('#a-kpis').innerHTML = [
+      el('div',{class:'card'}, el('div',{style:'font-weight:600'},'Critical Items'), el('div',{}, String(res.critical.length))),
+      el('div',{class:'card'}, el('div',{style:'font-weight:600'},'Fast Moving (top20)'), el('div',{}, String(res.fast.length))),
+      el('div',{class:'card'}, el('div',{style:'font-weight:600'},'Unused (period)'), el('div',{}, String(res.unused.length)))
+    ].map(n=>n.outerHTML).join('');
 
-// --- Minimal login wiring (drop-in) ---
-window.addEventListener('DOMContentLoaded', () => {
-  const btn = document.querySelector('button.btn.primary');
-  if (!btn) return console.warn('Login button not found at DOMContentLoaded');
-
-  btn.addEventListener('click', async () => {
-    const api = window.APP_CONFIG?.API_URL;
-    const username = document.getElementById('username')?.value?.trim() || '';
-    const password = document.getElementById('password')?.value || '';
-    if (!api) return alert('API URL not set in index.html');
-    if (!username || !password) return alert('Enter username and password');
-
-    try {
-      const r = await fetch(api, {
-        method: 'POST',
-        headers: {'Content-Type': 'text/plain'},
-        body: JSON.stringify({ action: 'login', payload: { username, password } })
-      });
-      const j = await r.json();
-      if (!j.ok) return alert(j.error || 'Login failed');
-
-      // Save session (simple + works)
-      sessionStorage.setItem('token', j.data.token);
-      sessionStorage.setItem('role', j.data.role);
-      sessionStorage.setItem('wardCode', j.data.wardCode || '');
-      sessionStorage.setItem('username', j.data.username);
-
-      // If your app has a renderApp/state, use it; else just navigate.
-      if (typeof renderApp === 'function' && typeof state === 'object') {
-        state.token = j.data.token;
-        state.role = j.data.role;
-        state.wardCode = j.data.wardCode || '';
-        state.username = j.data.username;
-        state.menu = 'inventory';
-        renderApp();
-      } else {
-        // Fallback: change URL or reload so your app can pick up sessionStorage
-        window.location.hash = '#inventory';
-        location.reload();
-      }
-    } catch (e) {
-      alert('Network error: ' + e);
+    function table(sel, rows){
+      const t=$(sel);
+      t.innerHTML = '<tr><th>Code</th><th>Name</th><th>Moved</th><th>Qty</th><th>Critical</th></tr>' +
+        rows.map(r=>`<tr${r.Critical?' class="critical"':''}><td>${r.ItemCode}</td><td>${r.ItemName}</td><td>${fmt(r.Moved)}</td><td>${fmt(r.Qty)}</td><td>${r.CriticalLevel||0}</td></tr>`).join('');
     }
-  });
-});
+    table('#a-fast', res.fast);
+    table('#a-slow', res.slow);
+    table('#a-unused', res.unused);
+    table('#a-critical', res.critical);
+  };
+
+  $('#a-run').onclick = run;
+  run();
+}
