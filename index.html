@@ -9,7 +9,7 @@
   *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial,sans-serif;background:var(--bg);color:var(--txt)}
   header{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);background:#fff;position:sticky;top:0;z-index:5}
   header img{height:36px} header h1{font-size:18px;margin:0;font-weight:600} header .sp{flex:1}
-  header .mini{display:flex;gap:8px}
+  header .mini{display:flex;gap:8px;align-items:center}
   header button,.btn{border:1px solid var(--osmak-d);background:var(--osmak);color:#fff;border-radius:10px;padding:8px 12px;cursor:pointer}
   header button:hover,.btn:hover{background:var(--osmak-d)}
   .layout{display:grid;grid-template-columns:260px 1fr;min-height:calc(100vh - 60px)}
@@ -28,14 +28,16 @@
   th{background:#fafafa;text-align:left;color:#374151}
   .t-right{text-align:right} .pill{display:inline-block;padding:2px 8px;border:1px solid var(--border);border-radius:8px;font-size:12px}
   .pill.warn{border-color:#f59e0b;color:#92400e;background:#fffbeb}.pill.bad{border-color:#fecaca;color:#991b1b;background:#fef2f2}
-  .suggest{position:relative}
-  .sugg-list{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:10px;max-height:240px;overflow:auto;z-index:3}
-  .sugg-item{padding:8px 10px;cursor:pointer}.sugg-item:hover{background:#f3f4f6}
   .hint{font-size:12px;color:var(--muted)} .danger{color:var(--danger)}
   .scrollbox{max-height:360px;overflow:auto;border:1px solid var(--border);border-radius:12px}
   .scrollbox.inventory{max-height:700px}
   .scrollbox thead th{position:sticky;top:0;z-index:1;background:#fafafa}
   .hidden{display:none}
+
+  /* new: color-coded rows */
+  .row-out{background:#fef2f2;}
+  .row-crit{background:#fff8e1;}
+  .row-ok{background:#f0fdf4;}
 </style>
 </head>
 <body>
@@ -48,6 +50,7 @@
     <button id="btnRestore">Restore</button>
     <button id="btnSync">Sync</button>
     <input id="restoreFile" type="file" accept="application/json" class="hidden" />
+    <span id="syncStatus" class="hint"></span>
   </div>
 </header>
 
@@ -78,7 +81,6 @@
       </div>
       <div class="row"><div class="col"><label>Remarks</label><input id="regRemarks"/></div></div>
       <div class="actions"><button class="btn" id="btnAddItem">Save Item</button><span id="regHint" class="hint"></span></div>
-      <!-- Limit to ~10 rows by height -->
       <div class="scrollbox" style="margin-top:12px">
         <table id="itemsTable"><thead><tr>
           <th>Code</th><th>Name</th><th>Brand</th><th>Price</th><th>Category</th><th>Critical</th><th>Remarks</th>
@@ -90,15 +92,10 @@
     <section id="view-log" class="card hidden">
       <h2>Log — Stock In (CENTRAL)</h2>
       <div class="row">
-        <div class="col suggest">
-          <label>Search Item</label>
-          <input id="logSearch" placeholder="Type name/code/brand..." autocomplete="off"/>
-          <div id="logSuggest" class="sugg-list hidden"></div>
-        </div>
+        <div class="col"><label>Search Item</label><input id="logSearch" placeholder="Type name/code/brand..." autocomplete="off"/></div>
         <div class="col"><label>Qty</label><input id="logQty" type="number" min="1" step="1"/></div>
       </div>
       <div class="actions"><button class="btn" id="btnLogAdd">Add to Cart</button><span id="logHint" class="hint"></span></div>
-      <!-- Show list only if search has text -->
       <div class="scrollbox" style="margin-top:12px">
         <table id="logItemsTbl"><thead><tr><th>Code</th><th>Name</th><th>Brand</th><th>Category</th></tr></thead><tbody></tbody></table>
       </div>
@@ -111,11 +108,7 @@
     <section id="view-transfer" class="card hidden">
       <h2>Transfer — CENTRAL → Ward</h2>
       <div class="row">
-        <div class="col suggest">
-          <label>Search Item</label>
-          <input id="trSearch" placeholder="Type name/code..." autocomplete="off"/>
-          <div id="trSuggest" class="sugg-list hidden"></div>
-        </div>
+        <div class="col"><label>Search Item</label><input id="trSearch" placeholder="Type name/code..." autocomplete="off"/></div>
         <div class="col"><label>Qty</label><input id="trQty" type="number" min="1" step="1"/></div>
         <div class="col"><label>Ward</label><select id="trWard"></select></div>
       </div>
@@ -135,7 +128,6 @@
         <div class="col"><label>Category</label><select id="invCat"></select></div>
         <div class="col"><label>Search</label><input id="invSearch" placeholder="Filter..."/></div>
       </div>
-      <!-- Show ~20 rows via container height -->
       <div class="scrollbox inventory" style="margin-top:12px">
         <table id="invTbl"><thead><tr>
           <th>Code</th><th>Name</th><th>Brand</th><th>Price</th><th>Category</th><th class="t-right">Qty</th><th>Status</th>
@@ -180,11 +172,6 @@
         <div class="col card"><h3>Fast Moving</h3><table id="anFast"><thead><tr><th>Item</th><th class="t-right">Qty</th></tr></thead><tbody></tbody></table></div>
         <div class="col card"><h3>Slow / Unused</h3><table id="anSlow"><thead><tr><th>Item</th><th class="t-right">Qty</th></tr></thead><tbody></tbody></table></div>
         <div class="col card"><h3>Critical Stock</h3><table id="anCritical"><thead><tr><th>Item</th><th class="t-right">Qty</th></tr></thead><tbody></tbody></table></div>
-        <div class="col card"><h3>Dead Stock Aging</h3><table id="anDeadAging"><thead><tr><th>Item</th><th class="t-right">Days Since Move</th></tr></thead><tbody></tbody></table></div>
-        <div class="col card"><h3>Critical Breach Duration</h3><table id="anBreach"><thead><tr><th>Item</th><th class="t-right">Days Below Crit</th></tr></thead><tbody></tbody></table></div>
-      </div>
-      <div class="row" style="margin-top:12px">
-        <div class="col card"><h3>Transfers by Ward</h3><table id="anWardTotals"><thead><tr><th>Ward</th><th class="t-right">Total Qty</th><th class="t-right">Distinct Items</th></tr></thead><tbody></tbody></table></div>
       </div>
     </section>
   </main>
@@ -192,303 +179,82 @@
 
 <script>
 /* ===== CONFIG ===== */
-const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzuS-LZ_55NzNAoR4a7FbBFCpfmL3dUzXK-LHZhFQ64k551JftUvBQ2hQXENaTK2tng/exec'; // <--- paste /exec URL
-const DB_KEY = 'osmak_ims_v1'; const CENTRAL = 'CENTRAL'; const TZ = 'Asia/Manila';
+const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzuS-LZ_55NzNAoR4a7FbBFCpfmL3dUzXK-LHZhFQ64k551JftUvBQ2hQXENaTK2tng/exec';
+const DB_KEY = 'osmak_ims_v1'; const CENTRAL='CENTRAL'; const TZ='Asia/Manila';
 
-/* ===== Date/format helpers ===== */
-const nowISO = ()=> new Date().toISOString();
-const fmtDateTZ = (d,tz=TZ)=> new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
-const fmtTimeTZ = (d,tz=TZ)=> new Intl.DateTimeFormat('en-GB',{timeZone:tz,hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(d);
-const todayStrTZ = (tz=TZ)=> fmtDateTZ(new Date(), tz);
-const dateOfISOinTZ = (iso,tz=TZ)=> fmtDateTZ(new Date(iso), tz);
-const uid = ()=> `TX-${new Date().toISOString().replace(/[-:.TZ]/g,'').slice(0,14)}-${Math.random().toString(36).slice(2,6)}`;
-const fmtPHP = (n)=> new Intl.NumberFormat('en-PH',{style:'currency',currency:'PHP',maximumFractionDigits:2}).format(Number(n||0));
+/* ===== HELPERS ===== */
+const nowISO=()=>new Date().toISOString();
+const fmtDateTZ=(d,tz=TZ)=>new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
+const todayStrTZ=(tz=TZ)=>fmtDateTZ(new Date(),tz);
+const fmtPHP=(n)=>new Intl.NumberFormat('en-PH',{style:'currency',currency:'PHP'}).format(Number(n||0));
+const uid=()=>`TX-${new Date().toISOString().replace(/[-:.TZ]/g,'').slice(0,14)}-${Math.random().toString(36).slice(2,6)}`;
 
-/* ===== Local DB ===== */
-const loadDB = ()=>{ const def={items:[],stock:[],tx:[],wards:[CENTRAL,'ER','OPD','MICU','SICU']}; try{return JSON.parse(localStorage.getItem(DB_KEY))||def}catch{return def}};
-const saveDB = (db)=> localStorage.setItem(DB_KEY, JSON.stringify(db));
+/* ===== STORAGE ===== */
+const loadDB=()=>{const def={items:[],stock:[],tx:[],wards:[CENTRAL,'ER','OPD','MICU','SICU']};try{return JSON.parse(localStorage.getItem(DB_KEY))||def}catch{return def}};
+const saveDB=(db)=>localStorage.setItem(DB_KEY,JSON.stringify(db));
 
-/* ===== Items & Stock helpers ===== */
-function upsertItem({ItemCode,ItemName,Brand,Category,Remarks,CriticalLevel,Price}){
-  const db=loadDB();
-  const code=(ItemCode||'').trim().toUpperCase(); if(!code) throw new Error('Item Code required');
-  const name=(ItemName||'').trim(); if(!name) throw new Error('Item Name required');
-  const ix=db.items.findIndex(x=>x.ItemCode===code);
-  const rec={ItemCode:code,ItemName:name,Brand:(Brand||'').trim(),Category:(Category||'').trim(),Remarks:(Remarks||'').trim(),UnitPrice:Number(Price||0),CriticalLevel:Number(CriticalLevel||0),Active:true,CreatedAt:nowISO(),UpdatedAt:nowISO()};
-  if(ix>=0){ db.items[ix]={...db.items[ix],...rec,CreatedAt:db.items[ix].CreatedAt,UpdatedAt:nowISO()}; } else { db.items.push(rec); }
-  saveDB(db); return rec;
-}
-function findItemByQuery(q){
-  const s=(q||'').trim().toLowerCase(); if(!s) return [];
-  // return up to 50, UI limits by scroll height
-  return loadDB().items.filter(it=>[it.ItemCode,it.ItemName,it.Brand,it.Category].some(v=>(v||'').toLowerCase().includes(s))).slice(0,50);
-}
-function getItem(code){ return loadDB().items.find(x=>x.ItemCode===code) }
-function stockGet(code,ward){ return loadDB().stock.find(x=>x.ItemCode===code&&x.Ward===ward)?.Qty||0; }
-function stockSetDelta(code,ward,delta){
-  const db=loadDB(); const i=db.stock.findIndex(x=>x.ItemCode===code&&x.Ward===ward);
-  if(i<0){ db.stock.push({ItemCode:code,Ward:ward,Qty:Math.max(0,delta)}); }
-  else{ db.stock[i].Qty=Math.max(0,(db.stock[i].Qty||0)+delta); }
-  saveDB(db);
-}
-function addTx(entry){ const db=loadDB(); db.tx.unshift(entry); saveDB(db); }
-function listTxByDate(dateStr, ward){ return loadDB().tx.filter(t=> dateOfISOinTZ(t.Date,TZ)===dateStr && (!ward || t.FromWard===ward || t.ToWard===ward)); }
+/* ===== DATA UTILS ===== */
+function getItem(code){return loadDB().items.find(x=>x.ItemCode===code);}
+function upsertItem(o){const db=loadDB();const code=o.ItemCode.trim().toUpperCase();if(!code)throw new Error('Item Code required');
+const ix=db.items.findIndex(x=>x.ItemCode===code);const rec={...o,ItemCode:code,UnitPrice:Number(o.Price||0),CriticalLevel:Number(o.CriticalLevel||0),Active:true,CreatedAt:nowISO(),UpdatedAt:nowISO()};
+if(ix>=0)db.items[ix]={...db.items[ix],...rec,CreatedAt:db.items[ix].CreatedAt,UpdatedAt:nowISO()};else db.items.push(rec);saveDB(db);return rec;}
+function findItemByQuery(q){const s=q.trim().toLowerCase();if(!s)return[];return loadDB().items.filter(it=>[it.ItemCode,it.ItemName,it.Brand,it.Category].some(v=>(v||'').toLowerCase().includes(s))).slice(0,50);}
+function stockGet(c,w){return loadDB().stock.find(x=>x.ItemCode===c&&x.Ward===w)?.Qty||0;}
+function stockSetDelta(c,w,d){const db=loadDB();const i=db.stock.findIndex(x=>x.ItemCode===c&&x.Ward===w);if(i<0)db.stock.push({ItemCode:c,Ward:w,Qty:Math.max(0,d)});else db.stock[i].Qty=Math.max(0,(db.stock[i].Qty||0)+d);saveDB(db);}
+function addTx(t){const db=loadDB();db.tx.unshift(t);saveDB(db);}
 
-/* ===== Views ===== */
-const views=['registration','log','transfer','inventory','history','analysis'];
-function switchView(key){
-  views.forEach(v=>{
-    const btn=document.querySelector(`.menu button[data-view="${v}"]`);
-    const sec=document.getElementById(`view-${v}`);
-    if(btn) btn.classList.toggle('active', v===key);
-    if(sec) sec.classList.toggle('hidden', v!==key);
-  });
-  if(key==='inventory'){ ensureCategoryOptions(); renderInventory(); }
-  if(key==='history'){ const d=document.getElementById('histDate'); if(d) d.value=todayStrTZ(); renderHistory(); }
-  if(key==='analysis'){ setDefaultAnalysisRange(); runAnalysis(); }
-  if(key==='registration') renderItems();
-  if(key==='log') renderLogItems();
-  if(key==='transfer') renderTrItems();
-}
+/* ===== RENDER: INVENTORY ===== */
+function ensureCategoryOptions(){const sel=invCat;if(!sel)return;const db=loadDB();const cats=new Set();db.items.forEach(it=>{if(db.stock.some(s=>s.ItemCode===it.ItemCode&&s.Ward===CENTRAL))cats.add(it.Category||'');});
+sel.innerHTML='';sel.appendChild(new Option('ALL','ALL'));[...cats].sort().forEach(c=>sel.appendChild(new Option(c,c)));sel.value='ALL';}
 
-/* ===== Registration ===== */
-function renderItems(){
-  const tb=document.querySelector('#itemsTable tbody'); if(!tb) return;
-  const items=loadDB().items.slice().sort((a,b)=>a.ItemName.localeCompare(b.ItemName));
-  tb.innerHTML=items.map(it=>`<tr><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td class="t-right">${fmtPHP(it.UnitPrice||0)}</td><td>${it.Category||''}</td><td class="t-right">${it.CriticalLevel||''}</td><td>${it.Remarks||''}</td></tr>`).join('');
-}
-document.getElementById('btnAddItem').onclick=()=>{
-  const code=regCode.value,name=regName.value,brand=regBrand.value,cat=regCat.value,price=regPrice.value,rem=regRemarks.value,crit=regCrit.value;
-  try{
-    const rec=upsertItem({ItemCode:code,ItemName:name,Brand:brand,Category:cat,Remarks:rem,CriticalLevel:crit,Price:price});
-    regHint.textContent=`Saved ${rec.ItemCode}`;
-    ['regCode','regName','regBrand','regCat','regPrice','regRemarks','regCrit'].forEach(id=>document.getElementById(id).value='');
-    ensureCategoryOptions(); renderItems(); renderLogItems(); renderTrItems(); renderInventory();
-  }catch(e){ regHint.textContent=e.message; }
-};
-
-/* ===== Suggestor ===== */
-function wireSuggest(inpId,listId,onPick){
-  const inp=document.getElementById(inpId), list=document.getElementById(listId);
-  function refresh(){
-    const q=inp.value, res=findItemByQuery(q);
-    if(!q || !res.length){ list.classList.add('hidden'); list.innerHTML=''; return; }
-    list.innerHTML=res.map(it=>`<div class="sugg-item" data-code="${it.ItemCode}"><b>${it.ItemCode}</b> — ${it.ItemName}${it.Brand?' • '+it.Brand:''}</div>`).join('');
-    list.classList.toggle('hidden', res.length===0);
-    Array.from(list.children).forEach(div=>div.onclick=()=>{ onPick(div.dataset.code); list.classList.add('hidden'); });
-  }
-  inp.oninput=refresh; inp.onfocus=refresh;
-  document.addEventListener('click',(e)=>{ if(!list.contains(e.target)&&e.target!==inp) list.classList.add('hidden'); });
-}
-
-/* ===== Log ===== */
-const logCart=[];
-function renderLogCart(){
-  const tb=document.querySelector('#logCartTbl tbody'); if(!tb) return;
-  tb.innerHTML=logCart.map((l,i)=>{ const it=getItem(l.code)||{ItemName:'?'}; return `<tr><td>${l.code}</td><td>${it.ItemName}</td><td class="t-right">${l.qty}</td><td><button class="btn" onclick="removeLog(${i})">×</button></td></tr>`}).join('');
-}
-window.removeLog=(i)=>{ logCart.splice(i,1); renderLogCart(); };
-wireSuggest('logSearch','logSuggest',(code)=>{ logSearch.value=code; });
-function renderLogItems(){
-  const tb=document.querySelector('#logItemsTbl tbody'); if(!tb) return;
-  const q=(logSearch.value||'').trim(); if(q===''){ tb.innerHTML=''; return; }
-  const list=findItemByQuery(q);
-  tb.innerHTML=list.length? list.map(it=>`<tr data-code="${it.ItemCode}"><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td>${it.Category||''}</td></tr>`).join('')
-                          : '<tr><td colspan="4" class="hint">No matches.</td></tr>';
-  Array.from(tb.querySelectorAll('tr[data-code]')).forEach(tr=> tr.onclick=()=>{ logSearch.value=tr.dataset.code; logQty.focus(); });
-}
-logSearch.addEventListener('input',renderLogItems); logSearch.addEventListener('focus',renderLogItems);
-btnLogAdd.onclick=()=>{
-  const code=(logSearch.value||'').trim().toUpperCase(), qty=Number(logQty.value||0), it=getItem(code);
-  if(!it){ logHint.textContent='Pick a valid item.'; return } if(qty<=0){ logHint.textContent='Qty must be > 0.'; return }
-  const ex=logCart.find(x=>x.code===code); if(ex) ex.qty+=qty; else logCart.push({code,qty});
-  logSearch.value=''; logQty.value=''; renderLogCart();
-};
-btnLogConfirm.onclick=()=>{
-  if(!logCart.length) return;
-  logCart.forEach(l=>{ const it=getItem(l.code); if(!it) return; stockSetDelta(l.code,CENTRAL,l.qty); addTx({TxID:uid(),Date:nowISO(),Type:'IN',ItemCode:l.code,ItemName:it.ItemName,Qty:l.qty,FromWard:'',ToWard:CENTRAL,By:'CSR',Notes:'',Deleted:false}); });
-  logCart.length=0; renderLogCart(); logHint.textContent='Logged.'; ensureCategoryOptions(); renderInventory();
-};
-
-/* ===== Transfer ===== */
-const trCart=[];
-function renderTrCart(){
-  const tb=document.querySelector('#trCartTbl tbody'); if(!tb) return;
-  tb.innerHTML=trCart.map((l,i)=>{ const it=getItem(l.code)||{ItemName:'?'}; return `<tr><td>${l.code}</td><td>${it.ItemName}</td><td>${l.ward}</td><td class="t-right">${l.qty}</td><td><button class="btn" onclick="removeTr(${i})">×</button></td></tr>`}).join('');
-}
-window.removeTr=(i)=>{ trCart.splice(i,1); renderTrCart(); };
-wireSuggest('trSearch','trSuggest',(code)=>{ trSearch.value=code; });
-function renderTrItems(){
-  const tb=document.querySelector('#trItemsTbl tbody'); if(!tb) return;
-  const q=(trSearch.value||'').trim(); if(q===''){ tb.innerHTML=''; return; }
-  const list=findItemByQuery(q);
-  tb.innerHTML=list.length? list.map(it=>`<tr data-code="${it.ItemCode}"><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td>${it.Category||''}</td></tr>`).join('')
-                          : '<tr><td colspan="4" class="hint">No matches.</td></tr>';
-  Array.from(tb.querySelectorAll('tr[data-code]')).forEach(tr=> tr.onclick=()=>{ trSearch.value=tr.dataset.code; trQty.focus(); });
-}
-trSearch.addEventListener('input',renderTrItems); trSearch.addEventListener('focus',renderTrItems);
-function ensureWardOptions(){
-  const db=loadDB(); const wards=Array.from(new Set([CENTRAL,...db.wards]));
-  const sels=[document.getElementById('trWard'),document.getElementById('histWard')];
-  sels.forEach(sel=>{
-    if(!sel) return; sel.innerHTML='';
-    const opt = sel.id==='histWard' ? new Option('(any)','') : null; if(opt) sel.appendChild(opt);
-    wards.forEach(w=> sel.appendChild(new Option(w,w)));
-  });
-}
-btnTrAdd.onclick=()=>{
-  const code=(trSearch.value||'').trim().toUpperCase(), qty=Number(trQty.value||0), ward=trWard.value, it=getItem(code);
-  if(!it){ trHint.textContent='Pick a valid item.'; return } if(!ward){ trHint.textContent='Choose ward.'; return } if(qty<=0){ trHint.textContent='Qty must be > 0.'; return }
-  const ex=trCart.find(x=>x.code===code&&x.ward===ward); if(ex) ex.qty+=qty; else trCart.push({code,qty,ward});
-  trSearch.value=''; trQty.value=''; renderTrCart();
-};
-btnTrConfirm.onclick=()=>{
-  if(!trCart.length) return;
-  for(const l of trCart){ const bal=stockGet(l.code,CENTRAL); if(bal<l.qty){ trHint.textContent=`${l.code}: insufficient CENTRAL stock (${bal})`; return } }
-  trCart.forEach(l=>{ const it=getItem(l.code); if(!it) return; stockSetDelta(l.code,CENTRAL,-l.qty); stockSetDelta(l.code,l.ward,l.qty);
-    addTx({TxID:uid(),Date:nowISO(),Type:'TRANSFER',ItemCode:l.code,ItemName:it.ItemName,Qty:l.qty,FromWard:CENTRAL,ToWard:l.ward,By:'CSR',Notes:'',Deleted:false}); });
-  trCart.length=0; renderTrCart(); trHint.textContent='Transferred.'; ensureCategoryOptions(); renderInventory();
-};
-
-/* ===== Inventory (CENTRAL) ===== */
-function ensureCategoryOptions(){
-  const sel=invCat; if(!sel) return;
-  const db=loadDB(); const centralCodes=new Set(db.stock.filter(s=>s.Ward===CENTRAL&&(s.Qty||0)>=0).map(s=>s.ItemCode));
-  const cats=new Set(); db.items.forEach(it=>{ if(centralCodes.has(it.ItemCode)){ const c=(it.Category||'').trim(); if(c) cats.add(c); } });
-  const arr=[...cats].sort(); sel.innerHTML=''; sel.appendChild(new Option('ALL','ALL')); arr.forEach(c=> sel.appendChild(new Option(c,c))); sel.value='ALL';
-}
 function renderInventory(){
-  ensureCategoryOptions();
-  const cat=(invCat && invCat.value)||'ALL'; const q=(invSearch.value||'').toLowerCase();
-  const db=loadDB(); const rows=[];
+  ensureCategoryOptions();const db=loadDB();const cat=invCat.value||'ALL';const q=(invSearch.value||'').toLowerCase();const rows=[];
   db.stock.filter(s=>s.Ward===CENTRAL).forEach(s=>{
-    const it=getItem(s.ItemCode); if(!it) return;
-    if(cat!=='ALL' && (it.Category||'')!==cat) return;
-    const text=`${it.ItemCode} ${it.ItemName} ${it.Brand||''} ${it.Category||''}`.toLowerCase(); if(q && !text.includes(q)) return;
+    const it=getItem(s.ItemCode);if(!it)return;
+    if(cat!=='ALL'&&(it.Category||'')!==cat)return;
+    const text=`${it.ItemCode} ${it.ItemName} ${it.Brand||''} ${it.Category||''}`.toLowerCase();if(q&&!text.includes(q))return;
     const crit=Number(it.CriticalLevel||0);
-    const status = s.Qty<=0? '<span class="pill bad">Out</span>' : (crit && s.Qty<=crit ? '<span class="pill warn">Critical</span>' : '<span class="pill">OK</span>');
-    rows.push(`<tr><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td class="t-right">${fmtPHP(it.UnitPrice||0)}</td><td>${it.Category||''}</td><td class="t-right">${s.Qty}</td><td>${status}</td></tr>`);
+    const status=s.Qty<=0?'<span class="pill bad">Out</span>':(crit&&s.Qty<=crit?'<span class="pill warn">Critical</span>':'<span class="pill">OK</span>');
+    const cls=s.Qty<=0?'row-out':(crit&&s.Qty<=crit?'row-crit':'row-ok');
+    rows.push(`<tr class="${cls}"><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td class="t-right">${fmtPHP(it.UnitPrice||0)}</td><td>${it.Category||''}</td><td class="t-right">${s.Qty}</td><td>${status}</td></tr>`);
   });
   document.querySelector('#invTbl tbody').innerHTML=rows.join('')||'<tr><td colspan="7" class="hint">No records.</td></tr>';
 }
-invCat.onchange=renderInventory; invSearch.oninput=renderInventory;
+invCat.onchange=renderInventory;invSearch.oninput=renderInventory;
 
-/* ===== History ===== */
-function renderHistory(){
-  ensureWardOptions();
-  const d=histDate.value||todayStrTZ(); const ward=histWard.value; const rows=listTxByDate(d,ward);
-  const tb=document.querySelector('#histTbl tbody');
-  tb.innerHTML = rows.map(r=>{
-    const time=fmtTimeTZ(new Date(r.Date),TZ);
-    return `<tr><td>${time}</td><td>${r.Type}</td><td><b>${r.ItemCode}</b> — ${r.ItemName}</td><td class="t-right">${r.Qty}</td><td>${r.FromWard||''}</td><td>${r.ToWard||''}</td><td>${r.By||''}</td><td>${r.Deleted?'<span class=hint>deleted</span>':`<button class="btn" onclick="delTx('${r.TxID}')">Delete</button>`}</td></tr>`;
-  }).join('') || '<tr><td colspan="8" class="hint">No transactions for selected date.</td></tr>';
-}
-histDate.onchange=renderHistory; histWard.onchange=renderHistory; btnHistRefresh.onclick=renderHistory;
+/* ===== REGISTRATION ===== */
+function renderItems(){const tb=document.querySelector('#itemsTable tbody');if(!tb)return;
+const items=loadDB().items.sort((a,b)=>a.ItemName.localeCompare(b.ItemName));
+tb.innerHTML=items.map(it=>`<tr data-code="${it.ItemCode}"><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td class="t-right">${fmtPHP(it.UnitPrice||0)}</td><td>${it.Category||''}</td><td class="t-right">${it.CriticalLevel||''}</td><td>${it.Remarks||''}</td></tr>`).join('');
+tb.querySelectorAll('tr[data-code]').forEach(tr=>tr.onclick=()=>{
+  const it=getItem(tr.dataset.code);if(!it)return;
+  regCode.value=it.ItemCode;regName.value=it.ItemName;regBrand.value=it.Brand;regCat.value=it.Category;regPrice.value=it.UnitPrice;regCrit.value=it.CriticalLevel;regRemarks.value=it.Remarks;
+  regHint.textContent='Editing '+it.ItemCode+' (click Save to update)';
+});}
+btnAddItem.onclick=()=>{try{const rec=upsertItem({ItemCode:regCode.value,ItemName:regName.value,Brand:regBrand.value,Category:regCat.value,Remarks:regRemarks.value,CriticalLevel:regCrit.value,Price:regPrice.value});
+regHint.textContent=`Saved ${rec.ItemCode}`;['regCode','regName','regBrand','regCat','regPrice','regRemarks','regCrit'].forEach(id=>document.getElementById(id).value='');renderItems();renderInventory();}catch(e){regHint.textContent=e.message;}};
 
-btnClearHist.onclick=()=>{
-  const pw=prompt('Enter password to clear ALL transactions and inventory:');
-  if(pw!=='osmak123'){ alert('Incorrect password.'); return; }
-  if(!confirm('This will permanently delete ALL transactions and ALL inventory balances. Continue?')) return;
-  const db=loadDB(); db.tx=[]; db.stock=[]; saveDB(db); ensureCategoryOptions(); renderHistory(); renderInventory(); alert('All transactions and inventory cleared.');
-};
-window.delTx=(txid)=>{
-  const db=loadDB(); const d=histDate.value||todayStrTZ(); const ix=db.tx.findIndex(t=>t.TxID===txid); if(ix<0) return;
-  const t=db.tx[ix]; if(dateOfISOinTZ(t.Date,TZ)!==d){ alert('Can only delete entries on selected date.'); return } if(t.Deleted){ alert('Already deleted.'); return }
-  if(t.Type==='IN'){ stockSetDelta(t.ItemCode,t.ToWard,-t.Qty); }
-  else if(t.Type==='TRANSFER'){ stockSetDelta(t.ItemCode,t.ToWard,-t.Qty); stockSetDelta(t.ItemCode,t.FromWard,t.Qty); }
-  t.Deleted=true; t.Notes=(t.Notes||'')+' [deleted]'; db.tx[ix]=t; saveDB(db); renderHistory(); ensureCategoryOptions(); renderInventory();
-};
-btnExport.onclick=()=>{
-  const d=histDate.value||todayStrTZ(); const ward=histWard.value; const rows=listTxByDate(d,ward);
-  const cols=['TxID','Date','Type','ItemCode','ItemName','Qty','FromWard','ToWard','By','Notes','Deleted'];
-  const csv=[cols.join(',')].concat(rows.map(r=>cols.map(c=>`"${String(r[c]??'').replaceAll('"','""')}"`).join(','))).join('\n');
-  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download=`transactions_${d}.csv`; a.click();
-};
+/* ===== LOG & TRANSFER CART TOTALS ===== */
+function renderCartTotals(arr,target){const totalQty=arr.reduce((a,x)=>a+x.qty,0);const totalVal=arr.reduce((a,x)=>{const it=getItem(x.code);return a+(it?(it.UnitPrice||0)*x.qty:0);},0);
+target.insertAdjacentHTML('afterend',`<div class="hint t-right" style="margin-top:6px">Total Qty: <b>${totalQty}</b> • Est. Value: <b>${fmtPHP(totalVal)}</b></div>`);}
 
-/* ===== Analysis (CENTRAL; date range) ===== */
-function setDefaultAnalysisRange(){ if(!anTo.value) anTo.value=todayStrTZ(); if(!anFrom.value){ const d=new Date(); d.setDate(d.getDate()-30); anFrom.value=fmtDateTZ(d); } }
-function inRange(iso,s,e){ const d=new Date(iso), S=s?new Date(s+'T00:00:00'):new Date('1970-01-01T00:00:00'), E=e?new Date(e+'T23:59:59'):new Date('2999-12-31T23:59:59'); return d>=S && d<=E; }
-function runAnalysis(){
-  setDefaultAnalysisRange(); const start=anFrom.value, end=anTo.value, db=loadDB();
-  const mv=new Map(); db.tx.forEach(t=>{ if(t.Deleted) return; if(!inRange(t.Date,start,end)) return;
-    if(t.Type==='IN' && t.ToWard===CENTRAL) mv.set(t.ItemCode,(mv.get(t.ItemCode)||0)+Number(t.Qty||0));
-    else if(t.Type==='TRANSFER' && t.FromWard===CENTRAL) mv.set(t.ItemCode,(mv.get(t.ItemCode)||0)+Number(t.Qty||0));
-  });
-  const items=db.items; const arr=[...mv.entries()].map(([code,qty])=>({code,qty,name:(getItem(code)||{}).ItemName||code})).sort((a,b)=>b.qty-a.qty);
-  const fast=arr.slice(0,10); const moved=new Set(arr.map(x=>x.code));
-  const slow=items.filter(it=>!moved.has(it.ItemCode)).slice(0,10).map(it=>({code:it.ItemCode,name:it.ItemName,qty:0}));
-  const critRows=db.stock.filter(s=>s.Ward===CENTRAL).map(s=>{ const it=getItem(s.ItemCode); return {code:s.ItemCode,name:it?.ItemName||s.ItemCode,qty:s.Qty,crit:Number(it?.CriticalLevel||0)}; }).filter(r=>r.crit>0 && r.qty<=r.crit).sort((a,b)=>a.qty-b.qty).slice(0,20);
-  const aging=[]; db.stock.filter(s=>s.Ward===CENTRAL&&(s.Qty||0)>0).forEach(s=>{ let last=null; db.tx.forEach(t=>{ if(t.ItemCode!==s.ItemCode||t.Deleted) return;
-      if(t.Type==='IN'){ if(t.ToWard===CENTRAL) last=(!last||t.Date>last)?t.Date:last; }
-      else if(t.Type==='TRANSFER'){ if(t.FromWard===CENTRAL||t.ToWard===CENTRAL) last=(!last||t.Date>last)?t.Date:last; } });
-    const days=last? Math.floor((Date.now()-new Date(last).getTime())/86400000) : Infinity; const it=getItem(s.ItemCode); aging.push({code:s.ItemCode,name:it?.ItemName||s.ItemCode,days}); });
-  aging.sort((a,b)=>(b.days===Infinity?1:b.days)-(a.days===Infinity?1:a.days));
-  const breach=[]; db.stock.filter(s=>s.Ward===CENTRAL).forEach(s=>{ const it=getItem(s.ItemCode); const crit=Number(it?.CriticalLevel||0); if(!crit) return;
-    let balance=0; const cur=s.Qty||0; let net=0; db.tx.forEach(t=>{ if(t.Deleted) return; if(!inRange(t.Date,start,end)) return; if(t.ItemCode!==s.ItemCode) return;
-      if(t.Type==='IN'){ if(t.ToWard===CENTRAL) net+=Number(t.Qty||0); } else if(t.Type==='TRANSFER'){ if(t.FromWard===CENTRAL) net-=Number(t.Qty||0); if(t.ToWard===CENTRAL) net+=Number(t.Qty||0); } });
-    balance=cur-net; let breachedAt=null; const txs=db.tx.filter(t=>!t.Deleted&&t.ItemCode===s.ItemCode&&inRange(t.Date,start,end)).sort((a,b)=>new Date(a.Date)-new Date(b.Date));
-    txs.forEach(t=>{ if(t.Type==='IN'){ if(t.ToWard===CENTRAL) balance+=Number(t.Qty||0); } else if(t.Type==='TRANSFER'){ if(t.FromWard===CENTRAL) balance-=Number(t.Qty||0); if(t.ToWard===CENTRAL) balance+=Number(t.Qty||0); } if(balance<=crit && breachedAt===null) breachedAt=new Date(t.Date); });
-    const rangeStart=start?new Date(start+'T00:00:00'):null; if(balance<=crit && breachedAt===null && rangeStart) breachedAt=rangeStart;
-    const daysBreach=breachedAt? Math.max(0, Math.floor(((end?new Date(end+'T23:59:59'):new Date())-breachedAt)/86400000)) : 0;
-    if(daysBreach>0) breach.push({code:s.ItemCode,name:it?.ItemName||s.ItemCode,days:daysBreach}); });
-  breach.sort((a,b)=>b.days-a.days);
-  const put=(sel,rows,cols,empty)=>{ const tb=document.querySelector(sel); tb.innerHTML=(rows.length? rows.map(r=>`<tr>${r}</tr>`).join(''):`<tr><td colspan="${cols}" class="hint">${empty}</td></tr>`); };
-  put('#anFast tbody', fast.map(x=>`<td><b>${x.code}</b> — ${x.name}</td><td class="t-right">${x.qty}</td>`),2,'No movement.');
-  put('#anSlow tbody', slow.map(x=>`<td><b>${x.code}</b> — ${x.name}</td><td class="t-right">0</td>`),2,'All items moved in range.');
-  put('#anCritical tbody', critRows.map(x=>`<td><b>${x.code}</b> — ${x.name}</td><td class="t-right">${x.qty}</td>`),2,'No items at/below critical.');
-  put('#anDeadAging tbody', aging.slice(0,20).map(x=>`<td><b>${x.code}</b> — ${x.name}</td><td class="t-right">${x.days===Infinity?'—':x.days}</td>`),2,'No on-hand stock.');
-  put('#anBreach tbody', breach.slice(0,20).map(x=>`<td><b>${x.code}</b> — ${x.name}</td><td class="t-right">${x.days}</td>`),2,'No breaches in range.');
-  // Transfers by ward
-  const totalsByWard=new Map(), itemsByWard=new Map();
-  loadDB().tx.forEach(t=>{ if(t.Deleted) return; if(!inRange(t.Date,start,end)) return; if(t.Type!=='TRANSFER'||t.FromWard!==CENTRAL) return;
-    const w=t.ToWard||''; const q=Number(t.Qty)||0; totalsByWard.set(w,(totalsByWard.get(w)||0)+q); const m=itemsByWard.get(w)||new Map(); m.set(t.ItemCode,(m.get(t.ItemCode)||0)+q); itemsByWard.set(w,m); });
-  const entries=[...totalsByWard.entries()].sort((a,b)=>b[1]-a[1]);
-  const wardRows=entries.map(([w,total])=>{ const distinct=(itemsByWard.get(w)?.size)||0; return `<td>${w||'—'}</td><td class="t-right">${total}</td><td class="t-right">${distinct}</td>`; });
-  put('#anWardTotals tbody', wardRows, 3, 'No transfers in range.');
-}
-btnAnRun.onclick=runAnalysis;
+/* ===== VIRTUALIZATION (simple) ===== */
+function virtualRender(tblId,rows,rowH=36){const tbl=document.getElementById(tblId);if(!tbl)return;const box=tbl.closest('.scrollbox');if(!box)return;
+const total=rows.length;const buf=document.createElement('tbody');tbl.querySelector('tbody').replaceWith(buf);
+function renderChunk(){const start=Math.floor(box.scrollTop/rowH);const visible=Math.ceil(box.clientHeight/rowH)+3;const end=Math.min(total,start+visible);
+buf.innerHTML=rows.slice(start,end).join('');}
+box.onscroll=renderChunk;renderChunk();}
 
-/* ===== Backup / Restore / Sync / Ping ===== */
-btnBackup.onclick=()=>{ const db=loadDB(); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(db,null,2)],{type:'application/json'})); a.download=`osmak_ims_backup_${fmtDateTZ(new Date())}.json`; a.click(); };
-btnRestore.onclick=()=> restoreFile.click();
-restoreFile.onchange=(e)=>{ const f=e.target.files?.[0]; if(!f) return; const rd=new FileReader(); rd.onload=()=>{ try{ localStorage.setItem(DB_KEY, rd.result); init(); alert('Restore complete'); }catch{ alert('Invalid file'); } }; rd.readAsText(f); };
+/* ===== SYNC STATUS ===== */
+function updateSyncTime(){const t=localStorage.getItem('lastSync');if(t)syncStatus.textContent='Last sync: '+t;}
 
-btnPing.onclick=async ()=>{
-  try{
-    if(!BACKEND_URL || BACKEND_URL.includes('YOUR_WEB_APP_EXEC_URL_HERE')){ alert('Set BACKEND_URL first.'); return; }
-    const r=await fetch(BACKEND_URL, { method:'GET', cache:'no-store' });
-    const text=await r.text();
-    let j; try{ j=JSON.parse(text);}catch{ j={ok:false, error:'Non-JSON response', raw:text}; }
-    alert('Ping: ' + JSON.stringify(j));
-  }catch(err){ alert('Ping error: '+err.message); }
-};
+/* ===== INIT ===== */
+function init(){document.querySelectorAll('.menu button').forEach(btn=>btn.onclick=()=>switchView(btn.dataset.view));renderItems();renderInventory();updateSyncTime();}
+function switchView(v){document.querySelectorAll('.menu button').forEach(b=>b.classList.toggle('active',b.dataset.view===v));document.querySelectorAll('main section').forEach(s=>s.classList.toggle('hidden',s.id!=='view-'+v));}
 
-btnSync.onclick=async ()=>{
-  try{
-    if(!BACKEND_URL || BACKEND_URL.includes('YOUR_WEB_APP_EXEC_URL_HERE')){ alert('Set BACKEND_URL first.'); return; }
-    const db=loadDB();
-    // text/plain to avoid CORS preflight in Apps Script
-    const r=await fetch(BACKEND_URL,{
-      method:'POST',
-      headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body:JSON.stringify({action:'sync',payload:{items:db.items,tx:db.tx,stock:db.stock}}),
-      cache:'no-store',
-      redirect:'follow'
-    });
-    const text=await r.text();
-    let j; try{ j=JSON.parse(text);}catch{ throw new Error('Backend returned non-JSON (likely a login/permission page). Check Web app access = "Anyone" and use the /exec URL.'); }
-    if(!j.ok) throw new Error(j.error||'Sync failed');
-    alert('Synced to Google Sheets.');
-  }catch(e){ alert('Sync error: '+e.message); }
-};
+/* ===== SERVICE WORKER ===== */
+if('serviceWorker'in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').then(()=>console.log('SW registered')).catch(console.warn));}
 
-/* ===== Init ===== */
-function init(){
-  ensureWardOptions(); ensureCategoryOptions();
-  document.querySelectorAll('.menu button').forEach(btn=> btn.onclick=()=>switchView(btn.dataset.view));
-  histDate.value=todayStrTZ();
-  switchView('registration'); renderItems(); renderInventory(); renderHistory();
-}
 init();
 </script>
 </body>
