@@ -55,9 +55,8 @@
     .mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}
     .hidden{display:none}
 
-    /* Scrollable boxes */
     .scrollbox{max-height:700px;overflow:auto;border:1px solid var(--border);border-radius:12px}
-    .scrollbox.inventory{max-height:840px}
+    .scrollbox.inventory{max-height:840px} /* ~20 rows */
     .scrollbox table{margin:0}
     .scrollbox thead th{position:sticky;top:0;z-index:1;background:#fafafa}
     button:focus-visible,.btn:focus-visible{outline:3px solid rgba(0,154,62,.35);outline-offset:2px}
@@ -98,6 +97,7 @@
           <div class="col"><label>Item Name</label><input id="regName"/></div>
           <div class="col"><label>Brand</label><input id="regBrand"/></div>
           <div class="col"><label>Category</label><input id="regCat"/></div>
+          <div class="col"><label>Price</label><input id="regPrice" type="number" min="0" step="0.01"/></div>
           <div class="col"><label>Critical Level (optional)</label><input id="regCrit" type="number" min="0" step="1"/></div>
         </div>
         <div class="row mt12">
@@ -111,7 +111,12 @@
           <h3>Items</h3>
           <div class="scrollbox">
             <table id="itemsTable">
-              <thead><tr><th>Code</th><th>Name</th><th>Brand</th><th>Category</th><th>Critical</th><th>Remarks</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>Code</th><th>Name</th><th>Brand</th><th>Price</th>
+                  <th>Category</th><th>Critical</th><th>Remarks</th>
+                </tr>
+              </thead>
               <tbody></tbody>
             </table>
           </div>
@@ -120,7 +125,7 @@
 
       <!-- Log -->
       <section id="view-log" class="card hidden">
-        <h2>Log — Received Supplies</h2>
+        <h2>Log — Stock In (to CENTRAL)</h2>
         <div class="row mt12">
           <div class="col suggest">
             <label>Search Item</label>
@@ -150,7 +155,7 @@
 
       <!-- Transfer -->
       <section id="view-transfer" class="card hidden">
-        <h2>Transfer — CSR → Ward</h2>
+        <h2>Transfer — CENTRAL → Ward</h2>
         <div class="row mt12">
           <div class="col suggest">
             <label>Search Item</label>
@@ -185,14 +190,19 @@
 
       <!-- Inventory (CENTRAL only) -->
       <section id="view-inventory" class="card hidden">
-        <h2>Inventory — CSR</h2>
+        <h2>Inventory — CENTRAL</h2>
         <div class="row mt12">
           <div class="col"><label>Category</label><select id="invCat"></select></div>
           <div class="col"><label>Search</label><input id="invSearch" placeholder="Filter..."/></div>
         </div>
         <div class="mt12 scrollbox inventory">
           <table id="invTbl">
-            <thead><tr><th>Code</th><th>Name</th><th>Brand</th><th>Category</th><th class="t-right">Qty</th><th>Status</th></tr></thead>
+            <thead>
+              <tr>
+                <th>Code</th><th>Name</th><th>Brand</th><th>Price</th>
+                <th>Category</th><th class="t-right">Qty</th><th>Status</th>
+              </tr>
+            </thead>
             <tbody></tbody>
           </table>
         </div>
@@ -226,7 +236,7 @@
 
       <!-- Analysis -->
       <section id="view-analysis" class="card hidden">
-        <h2>Data Analysis — CSR</h2>
+        <h2>Data Analysis — CENTRAL</h2>
         <div class="row mt12">
           <div class="col"><label>From</label><input id="anFrom" type="date"/></div>
           <div class="col"><label>To</label><input id="anTo" type="date"/></div>
@@ -267,17 +277,21 @@
   </div>
 
   <script>
+  // ===== Backend URL (paste your Apps Script /exec here) =====
+  const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbwQdItC9krLApYTHpsJw7hgTeXF7vyp4oGPQbSaGoqYyinAnWdKUH9kvjb-8gQ2SZ-d/exec';
+
   // ===== Simple localStorage DB =====
   const DB_KEY = 'osmak_ims_v1';
   const CENTRAL = 'CENTRAL';
   const TZ = 'Asia/Manila';
 
-  const nowISO = () => new Date().toISOString();        // stored UTC
+  const nowISO = () => new Date().toISOString();        // stored in UTC
   const fmtDateTZ = (d, tz=TZ) => new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
   const fmtTimeTZ = (d, tz=TZ) => new Intl.DateTimeFormat('en-GB',{timeZone:tz,hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(d);
   const todayStrTZ = (tz=TZ) => fmtDateTZ(new Date(), tz);
   const dateOfISOinTZ = (iso, tz=TZ) => fmtDateTZ(new Date(iso), tz);
   const uid = () => `TX-${new Date().toISOString().replace(/[-:.TZ]/g,'').slice(0,14)}-${Math.random().toString(36).slice(2,6)}`;
+  const fmtPHP = (n)=> new Intl.NumberFormat('en-PH',{style:'currency',currency:'PHP',maximumFractionDigits:2}).format(Number(n||0));
 
   const loadDB = () => {
     const def = { items: [], stock: [], tx: [], wards: [CENTRAL,'ER','OPD','MICU','SICU'] };
@@ -286,14 +300,19 @@
   const saveDB = (db) => localStorage.setItem(DB_KEY, JSON.stringify(db));
 
   // CRUD helpers
-  function upsertItem({ItemCode,ItemName,Brand,Category,Remarks,CriticalLevel}){
+  function upsertItem({ItemCode,ItemName,Brand,Category,Remarks,CriticalLevel,Price}){
     const db = loadDB();
     const code = (ItemCode||'').trim().toUpperCase();
     if(!code) throw new Error('Item Code required');
     const name = (ItemName||'').trim();
     if(!name) throw new Error('Item Name required');
     const ix = db.items.findIndex(x=>x.ItemCode===code);
-    const rec = {ItemCode:code,ItemName:name,Brand:(Brand||'').trim(),Category:(Category||'').trim(),Remarks:(Remarks||'').trim(),CriticalLevel:Number(CriticalLevel||0),Active:true,CreatedAt:nowISO(),UpdatedAt:nowISO()};
+    const rec = {
+      ItemCode:code, ItemName:name,
+      Brand:(Brand||'').trim(), Category:(Category||'').trim(), Remarks:(Remarks||'').trim(),
+      UnitPrice:Number(Price||0), CriticalLevel:Number(CriticalLevel||0),
+      Active:true, CreatedAt:nowISO(), UpdatedAt:nowISO()
+    };
     if(ix>=0){ db.items[ix] = {...db.items[ix],...rec,CreatedAt:db.items[ix].CreatedAt,UpdatedAt:nowISO()}; }
     else{ db.items.push(rec); }
     saveDB(db); return rec;
@@ -384,19 +403,26 @@
     const tbody = document.querySelector('#itemsTable tbody');
     if(!tbody) return;
     const items = loadDB().items.slice().sort((a,b)=>a.ItemName.localeCompare(b.ItemName));
-    tbody.innerHTML = items.map(it=> `<tr><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td>${it.Category||''}</td><td class="t-right">${it.CriticalLevel||''}</td><td>${it.Remarks||''}</td></tr>`).join('');
+    tbody.innerHTML = items.map(it=>
+      `<tr>
+        <td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td>
+        <td class="t-right">${fmtPHP(it.UnitPrice||0)}</td>
+        <td>${it.Category||''}</td><td class="t-right">${it.CriticalLevel||''}</td><td>${it.Remarks||''}</td>
+      </tr>`
+    ).join('');
   }
   document.getElementById('btnAddItem').onclick = () => {
     const code = document.getElementById('regCode').value;
     const name = document.getElementById('regName').value;
     const brand = document.getElementById('regBrand').value;
     const cat = document.getElementById('regCat').value;
+    const price = document.getElementById('regPrice').value;
     const rem = document.getElementById('regRemarks').value;
     const crit = document.getElementById('regCrit').value;
     try{
-      const rec = upsertItem({ItemCode:code, ItemName:name, Brand:brand, Category:cat, Remarks:rem, CriticalLevel:crit});
+      const rec = upsertItem({ItemCode:code, ItemName:name, Brand:brand, Category:cat, Remarks:rem, CriticalLevel:crit, Price:price});
       document.getElementById('regHint').textContent = `Saved ${rec.ItemCode}`;
-      ['regCode','regName','regBrand','regCat','regRemarks','regCrit'].forEach(id => document.getElementById(id).value = '');
+      ['regCode','regName','regBrand','regCat','regPrice','regRemarks','regCrit'].forEach(id => document.getElementById(id).value = '');
       ensureCategoryOptions();
       renderItems(); renderLogItems(); renderTrItems(); renderInventory();
     }catch(e){ document.getElementById('regHint').textContent = e.message; }
@@ -536,10 +562,16 @@
       if(q && !text.includes(q)) continue;
       const crit = Number(it.CriticalLevel||0);
       const status = s.Qty<=0? '<span class="pill bad">Out</span>' : (crit && s.Qty<=crit ? '<span class="pill warn">Critical</span>' : '<span class="pill">OK</span>');
-      rows.push(`<tr><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td>${it.Category||''}</td><td class="t-right">${s.Qty}</td><td>${status}</td></tr>`);
+      rows.push(
+        `<tr>
+           <td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td>
+           <td class="t-right">${fmtPHP(it.UnitPrice||0)}</td>
+           <td>${it.Category||''}</td><td class="t-right">${s.Qty}</td><td>${status}</td>
+         </tr>`
+      );
     }
 
-    document.querySelector('#invTbl tbody').innerHTML = rows.join('') || '<tr><td colspan="6" class="hint">No records.</td></tr>';
+    document.querySelector('#invTbl tbody').innerHTML = rows.join('') || '<tr><td colspan="7" class="hint">No records.</td></tr>';
   }
   const _invCatEl = document.getElementById('invCat'); if(_invCatEl) _invCatEl.onchange = renderInventory;
   const _invSearchEl = document.getElementById('invSearch'); if(_invSearchEl) _invSearchEl.oninput = renderInventory;
@@ -732,23 +764,29 @@
     const fTB = document.querySelector('#anFast tbody');
     const sTB = document.querySelector('#anSlow tbody');
     const cTB = document.querySelector('#anCritical tbody');
+    theadSafe(fTB, fast.map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.qty}</td></tr>`), 2, 'No movement.');
+    theadSafe(sTB, slow.map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>0</td></tr>`), 2, 'All items moved in range.');
+    theadSafe(cTB, critRows.map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.qty}</td></tr>`), 2, 'No items at/below critical.');
+
     const agTB = document.querySelector('#anDeadAging tbody');
+    theadSafe(agTB, agingRows.slice(0,20).map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.days===Infinity?'—':x.days}</td></tr>`), 2, 'No on-hand stock.');
+
     const brTB = document.querySelector('#anBreach tbody');
+    theadSafe(brTB, breachRows.slice(0,20).map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.days}</td></tr>`), 2, 'No breaches in range.');
+
     const wtBody = document.querySelector('#anWardTotals tbody');
+    const entries = Array.from(totalsByWard.entries()).sort((a,b)=>b[1]-a[1]);
+    theadSafe(wtBody, entries.map(([w,total])=>{
+      const distinct = (itemsByWard.get(w)?.size)||0;
+      return `<tr><td>${w||'—'}</td><td class='t-right'>${total}</td><td class='t-right'>${distinct}</td></tr>`;
+    }), 3, 'No transfers in range.');
+  }
 
-    if(fTB) fTB.innerHTML = fast.map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.qty}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No movement.</td></tr>';
-    if(sTB) sTB.innerHTML = slow.map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>0</td></tr>`).join('') || '<tr><td colspan="2" class="hint">All items moved in range.</td></tr>';
-    if(cTB) cTB.innerHTML = critRows.map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.qty}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No items at/below critical.</td></tr>';
-    if(agTB) agTB.innerHTML = agingRows.slice(0,20).map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.days===Infinity?'—':x.days}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No on-hand stock.</td></tr>';
-    if(brTB) brTB.innerHTML = breachRows.slice(0,20).map(x=>`<tr><td><b>${x.code}</b> — ${x.name}</td><td class='t-right'>${x.days}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">No breaches in range.</td></tr>';
-
-    if(wtBody){
-      const entries = Array.from(totalsByWard.entries()).sort((a,b)=>b[1]-a[1]);
-      wtBody.innerHTML = entries.map(([w,total])=>{
-        const distinct = (itemsByWard.get(w)?.size)||0;
-        return `<tr><td>${w||'—'}</td><td class='t-right'>${total}</td><td class='t-right'>${distinct}</td></tr>`;
-      }).join('') || '<tr><td colspan="3" class="hint">No transfers in range.</td></tr>';
-    }
+  function theadSafe(tbody, rowsHtmlArr, colspan, emptyText){
+    if(!tbody) return;
+    tbody.innerHTML = (rowsHtmlArr && rowsHtmlArr.length)
+      ? rowsHtmlArr.join('')
+      : `<tr><td colspan="${colspan}" class="hint">${emptyText}</td></tr>`;
   }
 
   // ===== Wards mgmt (no pill list) =====
@@ -761,7 +799,7 @@
     saveDB(db); document.getElementById('wardNew').value=''; ensureWardOptions(); renderWardList();
   };
 
-  // ===== Backup / Restore / Sync placeholder =====
+  // ===== Backup / Restore / Sync =====
   document.getElementById('btnBackup').onclick = ()=>{
     const db = loadDB();
     const blob = new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
@@ -777,9 +815,26 @@
     rd.onload = ()=>{ try{ localStorage.setItem(DB_KEY, rd.result); init(); alert('Restore complete'); }catch{ alert('Invalid file') } }
     rd.readAsText(f);
   };
-  document.getElementById('btnSync').onclick = ()=> alert('Sync is disabled in no-backend mode.');
+  document.getElementById('btnSync').onclick = async ()=>{
+    try{
+      if(!BACKEND_URL || BACKEND_URL.includes('YOUR_WEB_APP_EXEC_URL_HERE')){
+        alert('Set BACKEND_URL first.'); return;
+      }
+      const db = loadDB();
+      const res = await fetch(BACKEND_URL, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({action:'sync', payload:{ items: db.items, tx: db.tx, stock: db.stock }})
+      });
+      const j = await res.json();
+      if(!j.ok) throw new Error(j.error || 'Sync failed');
+      alert('Synced to Google Sheets.');
+    }catch(e){
+      alert('Sync error: ' + e.message);
+    }
+  };
 
-  // ===== Button binds / init =====
+  // ===== Buttons / init =====
   document.getElementById('btnAnRun').onclick = runAnalysis;
 
   function init(){
