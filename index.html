@@ -201,7 +201,7 @@ const fmtDateTZ = (d,tz=TZ)=> new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:
 const fmtTimeTZ = (d,tz=TZ)=> new Intl.DateTimeFormat('en-GB',{timeZone:tz,hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(d);
 const todayStrTZ = (tz=TZ)=> fmtDateTZ(new Date(), tz);
 const dateOfISOinTZ = (iso,tz=TZ)=> fmtDateTZ(new Date(iso), tz);
-const uid = ()=> TX-${new Date().toISOString().replace(/[-:.TZ]/g,'').slice(0,14)}-${Math.random().toString(36).slice(2,6)};
+const uid = ()=> `TX-${new Date().toISOString().replace(/[-:.TZ]/g,'').slice(0,14)}-${Math.random().toString(36).slice(2,6)}`;
 const fmtPHP = (n)=> new Intl.NumberFormat('en-PH',{style:'currency',currency:'PHP',maximumFractionDigits:2}).format(Number(n||0));
 
 /* ===== Local DB ===== */
@@ -238,8 +238,8 @@ function listTxByDate(dateStr, ward){ return loadDB().tx.filter(t=> dateOfISOinT
 const views=['registration','log','transfer','inventory','history','analysis'];
 function switchView(key){
   views.forEach(v=>{
-    const btn=document.querySelector(.menu button[data-view="${v}"]);
-    const sec=document.getElementById(view-${v});
+    const btn=document.querySelector(`.menu button[data-view="${v}"]`);
+    const sec=document.getElementById(`view-${v}`);
     if(btn) btn.classList.toggle('active', v===key);
     if(sec) sec.classList.toggle('hidden', v!==key);
   });
@@ -255,13 +255,13 @@ function switchView(key){
 function renderItems(){
   const tb=document.querySelector('#itemsTable tbody'); if(!tb) return;
   const items=loadDB().items.slice().sort((a,b)=>a.ItemName.localeCompare(b.ItemName));
-  tb.innerHTML=items.map(it=><tr><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td class="t-right">${fmtPHP(it.UnitPrice||0)}</td><td>${it.Category||''}</td><td class="t-right">${it.CriticalLevel||''}</td><td>${it.Remarks||''}</td></tr>).join('');
+  tb.innerHTML=items.map(it=>`<tr><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td class="t-right">${fmtPHP(it.UnitPrice||0)}</td><td>${it.Category||''}</td><td class="t-right">${it.CriticalLevel||''}</td><td>${it.Remarks||''}</td></tr>`).join('');
 }
 document.getElementById('btnAddItem').onclick=()=>{
   const code=regCode.value,name=regName.value,brand=regBrand.value,cat=regCat.value,price=regPrice.value,rem=regRemarks.value,crit=regCrit.value;
   try{
     const rec=upsertItem({ItemCode:code,ItemName:name,Brand:brand,Category:cat,Remarks:rem,CriticalLevel:crit,Price:price});
-    regHint.textContent=Saved ${rec.ItemCode};
+    regHint.textContent=`Saved ${rec.ItemCode}`;
     ['regCode','regName','regBrand','regCat','regPrice','regRemarks','regCrit'].forEach(id=>document.getElementById(id).value='');
     ensureCategoryOptions(); renderItems(); renderLogItems(); renderTrItems(); renderInventory();
   }catch(e){ regHint.textContent=e.message; }
@@ -273,7 +273,7 @@ function wireSuggest(inpId,listId,onPick){
   function refresh(){
     const q=inp.value, res=findItemByQuery(q);
     if(!q || !res.length){ list.classList.add('hidden'); list.innerHTML=''; return; }
-    list.innerHTML=res.map(it=><div class="sugg-item" data-code="${it.ItemCode}"><b>${it.ItemCode}</b> — ${it.ItemName}${it.Brand?' • '+it.Brand:''}</div>).join('');
+    list.innerHTML=res.map(it=>`<div class="sugg-item" data-code="${it.ItemCode}"><b>${it.ItemCode}</b> — ${it.ItemName}${it.Brand?' • '+it.Brand:''}</div>`).join('');
     list.classList.toggle('hidden', res.length===0);
     Array.from(list.children).forEach(div=>div.onclick=()=>{ onPick(div.dataset.code); list.classList.add('hidden'); });
   }
@@ -285,7 +285,7 @@ function wireSuggest(inpId,listId,onPick){
 const logCart=[];
 function renderLogCart(){
   const tb=document.querySelector('#logCartTbl tbody'); if(!tb) return;
-  tb.innerHTML=logCart.map((l,i)=>{ const it=getItem(l.code)||{ItemName:'?'}; return <tr><td>${l.code}</td><td>${it.ItemName}</td><td class="t-right">${l.qty}</td><td><button class="btn" onclick="removeLog(${i})">×</button></td></tr>}).join('');
+  tb.innerHTML=logCart.map((l,i)=>{ const it=getItem(l.code)||{ItemName:'?'}; return `<tr><td>${l.code}</td><td>${it.ItemName}</td><td class="t-right">${l.qty}</td><td><button class="btn" onclick="removeLog(${i})">×</button></td></tr>`}).join('');
 }
 window.removeLog=(i)=>{ logCart.splice(i,1); renderLogCart(); };
 wireSuggest('logSearch','logSuggest',(code)=>{ logSearch.value=code; });
@@ -293,7 +293,7 @@ function renderLogItems(){
   const tb=document.querySelector('#logItemsTbl tbody'); if(!tb) return;
   const q=(logSearch.value||'').trim(); if(q===''){ tb.innerHTML=''; return; }
   const list=findItemByQuery(q);
-  tb.innerHTML=list.length? list.map(it=><tr data-code="${it.ItemCode}"><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td>${it.Category||''}</td></tr>).join('')
+  tb.innerHTML=list.length? list.map(it=>`<tr data-code="${it.ItemCode}"><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td>${it.Category||''}</td></tr>`).join('')
                           : '<tr><td colspan="4" class="hint">No matches.</td></tr>';
   Array.from(tb.querySelectorAll('tr[data-code]')).forEach(tr=> tr.onclick=()=>{ logSearch.value=tr.dataset.code; logQty.focus(); });
 }
@@ -314,7 +314,7 @@ btnLogConfirm.onclick=()=>{
 const trCart=[];
 function renderTrCart(){
   const tb=document.querySelector('#trCartTbl tbody'); if(!tb) return;
-  tb.innerHTML=trCart.map((l,i)=>{ const it=getItem(l.code)||{ItemName:'?'}; return <tr><td>${l.code}</td><td>${it.ItemName}</td><td>${l.ward}</td><td class="t-right">${l.qty}</td><td><button class="btn" onclick="removeTr(${i})">×</button></td></tr>}).join('');
+  tb.innerHTML=trCart.map((l,i)=>{ const it=getItem(l.code)||{ItemName:'?'}; return `<tr><td>${l.code}</td><td>${it.ItemName}</td><td>${l.ward}</td><td class="t-right">${l.qty}</td><td><button class="btn" onclick="removeTr(${i})">×</button></td></tr>`}).join('');
 }
 window.removeTr=(i)=>{ trCart.splice(i,1); renderTrCart(); };
 wireSuggest('trSearch','trSuggest',(code)=>{ trSearch.value=code; });
@@ -322,7 +322,7 @@ function renderTrItems(){
   const tb=document.querySelector('#trItemsTbl tbody'); if(!tb) return;
   const q=(trSearch.value||'').trim(); if(q===''){ tb.innerHTML=''; return; }
   const list=findItemByQuery(q);
-  tb.innerHTML=list.length? list.map(it=><tr data-code="${it.ItemCode}"><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td>${it.Category||''}</td></tr>).join('')
+  tb.innerHTML=list.length? list.map(it=>`<tr data-code="${it.ItemCode}"><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td>${it.Category||''}</td></tr>`).join('')
                           : '<tr><td colspan="4" class="hint">No matches.</td></tr>';
   Array.from(tb.querySelectorAll('tr[data-code]')).forEach(tr=> tr.onclick=()=>{ trSearch.value=tr.dataset.code; trQty.focus(); });
 }
@@ -344,7 +344,7 @@ btnTrAdd.onclick=()=>{
 };
 btnTrConfirm.onclick=()=>{
   if(!trCart.length) return;
-  for(const l of trCart){ const bal=stockGet(l.code,CENTRAL); if(bal<l.qty){ trHint.textContent=${l.code}: insufficient CENTRAL stock (${bal}); return } }
+  for(const l of trCart){ const bal=stockGet(l.code,CENTRAL); if(bal<l.qty){ trHint.textContent=`${l.code}: insufficient CENTRAL stock (${bal})`; return } }
   trCart.forEach(l=>{ const it=getItem(l.code); if(!it) return; stockSetDelta(l.code,CENTRAL,-l.qty); stockSetDelta(l.code,l.ward,l.qty);
     addTx({TxID:uid(),Date:nowISO(),Type:'TRANSFER',ItemCode:l.code,ItemName:it.ItemName,Qty:l.qty,FromWard:CENTRAL,ToWard:l.ward,By:'CSR',Notes:'',Deleted:false}); });
   trCart.length=0; renderTrCart(); trHint.textContent='Transferred.'; ensureCategoryOptions(); renderInventory();
@@ -364,10 +364,10 @@ function renderInventory(){
   db.stock.filter(s=>s.Ward===CENTRAL).forEach(s=>{
     const it=getItem(s.ItemCode); if(!it) return;
     if(cat!=='ALL' && (it.Category||'')!==cat) return;
-    const text=${it.ItemCode} ${it.ItemName} ${it.Brand||''} ${it.Category||''}.toLowerCase(); if(q && !text.includes(q)) return;
+    const text=`${it.ItemCode} ${it.ItemName} ${it.Brand||''} ${it.Category||''}`.toLowerCase(); if(q && !text.includes(q)) return;
     const crit=Number(it.CriticalLevel||0);
     const status = s.Qty<=0? '<span class="pill bad">Out</span>' : (crit && s.Qty<=crit ? '<span class="pill warn">Critical</span>' : '<span class="pill">OK</span>');
-    rows.push(<tr><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td class="t-right">${fmtPHP(it.UnitPrice||0)}</td><td>${it.Category||''}</td><td class="t-right">${s.Qty}</td><td>${status}</td></tr>);
+    rows.push(`<tr><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td class="t-right">${fmtPHP(it.UnitPrice||0)}</td><td>${it.Category||''}</td><td class="t-right">${s.Qty}</td><td>${status}</td></tr>`);
   });
   document.querySelector('#invTbl tbody').innerHTML=rows.join('')||'<tr><td colspan="7" class="hint">No records.</td></tr>';
 }
@@ -380,7 +380,7 @@ function renderHistory(){
   const tb=document.querySelector('#histTbl tbody');
   tb.innerHTML = rows.map(r=>{
     const time=fmtTimeTZ(new Date(r.Date),TZ);
-    return <tr><td>${time}</td><td>${r.Type}</td><td><b>${r.ItemCode}</b> — ${r.ItemName}</td><td class="t-right">${r.Qty}</td><td>${r.FromWard||''}</td><td>${r.ToWard||''}</td><td>${r.By||''}</td><td>${r.Deleted?'<span class=hint>deleted</span>':<button class="btn" onclick="delTx('${r.TxID}')">Delete</button>}</td></tr>;
+    return `<tr><td>${time}</td><td>${r.Type}</td><td><b>${r.ItemCode}</b> — ${r.ItemName}</td><td class="t-right">${r.Qty}</td><td>${r.FromWard||''}</td><td>${r.ToWard||''}</td><td>${r.By||''}</td><td>${r.Deleted?'<span class=hint>deleted</span>':`<button class="btn" onclick="delTx('${r.TxID}')">Delete</button>`}</td></tr>`;
   }).join('') || '<tr><td colspan="8" class="hint">No transactions for selected date.</td></tr>';
 }
 histDate.onchange=renderHistory; histWard.onchange=renderHistory; btnHistRefresh.onclick=renderHistory;
@@ -401,8 +401,8 @@ window.delTx=(txid)=>{
 btnExport.onclick=()=>{
   const d=histDate.value||todayStrTZ(); const ward=histWard.value; const rows=listTxByDate(d,ward);
   const cols=['TxID','Date','Type','ItemCode','ItemName','Qty','FromWard','ToWard','By','Notes','Deleted'];
-  const csv=[cols.join(',')].concat(rows.map(r=>cols.map(c=>"${String(r[c]??'').replaceAll('"','""')}").join(','))).join('\n');
-  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download=transactions_${d}.csv; a.click();
+  const csv=[cols.join(',')].concat(rows.map(r=>cols.map(c=>`"${String(r[c]??'').replaceAll('"','""')}"`).join(','))).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download=`transactions_${d}.csv`; a.click();
 };
 
 /* ===== Analysis (CENTRAL; date range) ===== */
@@ -432,24 +432,24 @@ function runAnalysis(){
     const daysBreach=breachedAt? Math.max(0, Math.floor(((end?new Date(end+'T23:59:59'):new Date())-breachedAt)/86400000)) : 0;
     if(daysBreach>0) breach.push({code:s.ItemCode,name:it?.ItemName||s.ItemCode,days:daysBreach}); });
   breach.sort((a,b)=>b.days-a.days);
-  const put=(sel,rows,cols,empty)=>{ const tb=document.querySelector(sel); tb.innerHTML=(rows.length? rows.map(r=><tr>${r}</tr>).join(''):<tr><td colspan="${cols}" class="hint">${empty}</td></tr>); };
-  put('#anFast tbody', fast.map(x=><td><b>${x.code}</b> — ${x.name}</td><td class="t-right">${x.qty}</td>),2,'No movement.');
-  put('#anSlow tbody', slow.map(x=><td><b>${x.code}</b> — ${x.name}</td><td class="t-right">0</td>),2,'All items moved in range.');
-  put('#anCritical tbody', critRows.map(x=><td><b>${x.code}</b> — ${x.name}</td><td class="t-right">${x.qty}</td>),2,'No items at/below critical.');
-  put('#anDeadAging tbody', aging.slice(0,20).map(x=><td><b>${x.code}</b> — ${x.name}</td><td class="t-right">${x.days===Infinity?'—':x.days}</td>),2,'No on-hand stock.');
-  put('#anBreach tbody', breach.slice(0,20).map(x=><td><b>${x.code}</b> — ${x.name}</td><td class="t-right">${x.days}</td>),2,'No breaches in range.');
+  const put=(sel,rows,cols,empty)=>{ const tb=document.querySelector(sel); tb.innerHTML=(rows.length? rows.map(r=>`<tr>${r}</tr>`).join(''):`<tr><td colspan="${cols}" class="hint">${empty}</td></tr>`); };
+  put('#anFast tbody', fast.map(x=>`<td><b>${x.code}</b> — ${x.name}</td><td class="t-right">${x.qty}</td>`),2,'No movement.');
+  put('#anSlow tbody', slow.map(x=>`<td><b>${x.code}</b> — ${x.name}</td><td class="t-right">0</td>`),2,'All items moved in range.');
+  put('#anCritical tbody', critRows.map(x=>`<td><b>${x.code}</b> — ${x.name}</td><td class="t-right">${x.qty}</td>`),2,'No items at/below critical.');
+  put('#anDeadAging tbody', aging.slice(0,20).map(x=>`<td><b>${x.code}</b> — ${x.name}</td><td class="t-right">${x.days===Infinity?'—':x.days}</td>`),2,'No on-hand stock.');
+  put('#anBreach tbody', breach.slice(0,20).map(x=>`<td><b>${x.code}</b> — ${x.name}</td><td class="t-right">${x.days}</td>`),2,'No breaches in range.');
   // Transfers by ward
   const totalsByWard=new Map(), itemsByWard=new Map();
   loadDB().tx.forEach(t=>{ if(t.Deleted) return; if(!inRange(t.Date,start,end)) return; if(t.Type!=='TRANSFER'||t.FromWard!==CENTRAL) return;
     const w=t.ToWard||''; const q=Number(t.Qty)||0; totalsByWard.set(w,(totalsByWard.get(w)||0)+q); const m=itemsByWard.get(w)||new Map(); m.set(t.ItemCode,(m.get(t.ItemCode)||0)+q); itemsByWard.set(w,m); });
   const entries=[...totalsByWard.entries()].sort((a,b)=>b[1]-a[1]);
-  const wardRows=entries.map(([w,total])=>{ const distinct=(itemsByWard.get(w)?.size)||0; return <td>${w||'—'}</td><td class="t-right">${total}</td><td class="t-right">${distinct}</td>; });
+  const wardRows=entries.map(([w,total])=>{ const distinct=(itemsByWard.get(w)?.size)||0; return `<td>${w||'—'}</td><td class="t-right">${total}</td><td class="t-right">${distinct}</td>`; });
   put('#anWardTotals tbody', wardRows, 3, 'No transfers in range.');
 }
 btnAnRun.onclick=runAnalysis;
 
 /* ===== Backup / Restore / Sync / Ping ===== */
-btnBackup.onclick=()=>{ const db=loadDB(); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(db,null,2)],{type:'application/json'})); a.download=osmak_ims_backup_${fmtDateTZ(new Date())}.json; a.click(); };
+btnBackup.onclick=()=>{ const db=loadDB(); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(db,null,2)],{type:'application/json'})); a.download=`osmak_ims_backup_${fmtDateTZ(new Date())}.json`; a.click(); };
 btnRestore.onclick=()=> restoreFile.click();
 restoreFile.onchange=(e)=>{ const f=e.target.files?.[0]; if(!f) return; const rd=new FileReader(); rd.onload=()=>{ try{ localStorage.setItem(DB_KEY, rd.result); init(); alert('Restore complete'); }catch{ alert('Invalid file'); } }; rd.readAsText(f); };
 
