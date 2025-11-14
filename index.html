@@ -6,9 +6,12 @@
 <title>Ospital ng Makati Inventory Management System</title>
 <style>
   :root{--osmak:#009a3e;--osmak-d:#007530;--bg:#f7f7f7;--card:#fff;--txt:#111827;--muted:#6b7280;--border:#e5e7eb;--danger:#dc2626}
-  *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial,sans-serif;background:var(--bg);color:var(--txt)}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial,sans-serif;background:var(--bg);color:var(--txt)}
   header{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);background:#fff;position:sticky;top:0;z-index:5}
-  header img{height:36px} header h1{font-size:18px;margin:0;font-weight:600} header .sp{flex:1}
+  header img{height:36px}
+  header h1{font-size:18px;margin:0;font-weight:600}
+  header .sp{flex:1}
   header .mini{display:flex;gap:8px;align-items:center}
   header button,.btn{border:1px solid var(--osmak-d);background:var(--osmak);color:#fff;border-radius:10px;padding:8px 12px;cursor:pointer}
   header button:hover,.btn:hover{background:var(--osmak-d)}
@@ -20,24 +23,23 @@
   .menu button.active,.menu button:hover{background:var(--osmak);color:#fff;border-color:var(--osmak-d);font-weight:600}
   main{padding:16px}
   .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:14px}
-  .row{display:flex;gap:10px;flex-wrap:wrap} .row .col{flex:1;min-width:220px}
+  .row{display:flex;gap:10px;flex-wrap:wrap}.row .col{flex:1;min-width:220px}
   label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
-  input,select,textarea{width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:#fff}
-  input[type="number"]{text-align:right} .actions{display:flex;gap:8px;flex-wrap:wrap}
-  table{width:100%;border-collapse:collapse} th,td{padding:8px 10px;border-bottom:1px solid var(--border);font-size:14px}
+  input,select{width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:#fff}
+  input[type="number"]{text-align:right}
+  .actions{display:flex;gap:8px;flex-wrap:wrap}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:8px 10px;border-bottom:1px solid var(--border);font-size:14px}
   th{background:#fafafa;text-align:left;color:#374151}
-  .t-right{text-align:right} .pill{display:inline-block;padding:2px 8px;border:1px solid var(--border);border-radius:8px;font-size:12px}
-  .pill.warn{border-color:#f59e0b;color:#92400e;background:#fffbeb}.pill.bad{border-color:#fecaca;color:#991b1b;background:#fef2f2}
-  .hint{font-size:12px;color:var(--muted)} .danger{color:var(--danger)}
+  .t-right{text-align:right}
+  .hint{font-size:12px;color:var(--muted)}
   .scrollbox{max-height:360px;overflow:auto;border:1px solid var(--border);border-radius:12px}
   .scrollbox.inventory{max-height:700px}
   .scrollbox thead th{position:sticky;top:0;z-index:1;background:#fafafa}
   .hidden{display:none}
-
-  /* new: color-coded rows */
-  .row-out{background:#fef2f2;}
-  .row-crit{background:#fff8e1;}
-  .row-ok{background:#f0fdf4;}
+  .row-out{background:#fef2f2}
+  .row-crit{background:#fff8e1}
+  .row-ok{background:#f0fdf4}
 </style>
 </head>
 <body>
@@ -49,7 +51,8 @@
     <button id="btnBackup">Backup</button>
     <button id="btnRestore">Restore</button>
     <button id="btnSync">Sync</button>
-    <input id="restoreFile" type="file" accept="application/json" class="hidden" />
+    <button id="btnPing">Ping</button>
+    <input id="restoreFile" type="file" accept="application/json" class="hidden"/>
     <span id="syncStatus" class="hint"></span>
   </div>
 </header>
@@ -62,8 +65,6 @@
       <button data-view="log">Log</button>
       <button data-view="transfer">Transfer</button>
       <button data-view="inventory">Inventory</button>
-      <button data-view="history">Transaction History</button>
-      <button data-view="analysis">Data Analysis</button>
     </div>
   </aside>
 
@@ -72,19 +73,17 @@
     <section id="view-registration" class="card">
       <h2>Item Registration</h2>
       <div class="row">
-        <div class="col"><label>Item Code</label><input id="regCode" /></div>
-        <div class="col"><label>Item Name</label><input id="regName" /></div>
-        <div class="col"><label>Brand</label><input id="regBrand" /></div>
-        <div class="col"><label>Category</label><input id="regCat" /></div>
+        <div class="col"><label>Item Code</label><input id="regCode"/></div>
+        <div class="col"><label>Item Name</label><input id="regName"/></div>
+        <div class="col"><label>Brand</label><input id="regBrand"/></div>
+        <div class="col"><label>Category</label><input id="regCat"/></div>
         <div class="col"><label>Price</label><input id="regPrice" type="number" min="0" step="0.01"/></div>
         <div class="col"><label>Critical Level</label><input id="regCrit" type="number" min="0" step="1"/></div>
       </div>
       <div class="row"><div class="col"><label>Remarks</label><input id="regRemarks"/></div></div>
       <div class="actions"><button class="btn" id="btnAddItem">Save Item</button><span id="regHint" class="hint"></span></div>
       <div class="scrollbox" style="margin-top:12px">
-        <table id="itemsTable"><thead><tr>
-          <th>Code</th><th>Name</th><th>Brand</th><th>Price</th><th>Category</th><th>Critical</th><th>Remarks</th>
-        </tr></thead><tbody></tbody></table>
+        <table id="itemsTable"><thead><tr><th>Code</th><th>Name</th><th>Brand</th><th>Price</th><th>Category</th><th>Critical</th><th>Remarks</th></tr></thead><tbody></tbody></table>
       </div>
     </section>
 
@@ -96,12 +95,7 @@
         <div class="col"><label>Qty</label><input id="logQty" type="number" min="1" step="1"/></div>
       </div>
       <div class="actions"><button class="btn" id="btnLogAdd">Add to Cart</button><span id="logHint" class="hint"></span></div>
-      <div class="scrollbox" style="margin-top:12px">
-        <table id="logItemsTbl"><thead><tr><th>Code</th><th>Name</th><th>Brand</th><th>Category</th></tr></thead><tbody></tbody></table>
-      </div>
-      <h3 style="margin-top:12px">Cart</h3>
-      <table id="logCartTbl"><thead><tr><th>Code</th><th>Name</th><th class="t-right">Qty</th><th></th></tr></thead><tbody></tbody></table>
-      <div class="actions" style="margin-top:8px"><button class="btn" id="btnLogConfirm">Confirm</button></div>
+      <div class="scrollbox" style="margin-top:12px"><table id="logItemsTbl"><thead><tr><th>Code</th><th>Name</th><th>Brand</th><th>Category</th></tr></thead><tbody></tbody></table></div>
     </section>
 
     <!-- Transfer -->
@@ -110,68 +104,15 @@
       <div class="row">
         <div class="col"><label>Search Item</label><input id="trSearch" placeholder="Type name/code..." autocomplete="off"/></div>
         <div class="col"><label>Qty</label><input id="trQty" type="number" min="1" step="1"/></div>
-        <div class="col"><label>Ward</label><select id="trWard"></select></div>
       </div>
-      <div class="actions"><button class="btn" id="btnTrAdd">Add to Cart</button><span id="trHint" class="hint"></span></div>
-      <div class="scrollbox" style="margin-top:12px">
-        <table id="trItemsTbl"><thead><tr><th>Code</th><th>Name</th><th>Brand</th><th>Category</th></tr></thead><tbody></tbody></table>
-      </div>
-      <h3 style="margin-top:12px">Cart</h3>
-      <table id="trCartTbl"><thead><tr><th>Code</th><th>Name</th><th>Ward</th><th class="t-right">Qty</th><th></th></tr></thead><tbody></tbody></table>
-      <div class="actions" style="margin-top:8px"><button class="btn" id="btnTrConfirm">Confirm</button></div>
+      <div class="scrollbox" style="margin-top:12px"><table id="trItemsTbl"><thead><tr><th>Code</th><th>Name</th><th>Brand</th><th>Category</th></tr></thead><tbody></tbody></table></div>
     </section>
 
     <!-- Inventory -->
     <section id="view-inventory" class="card hidden">
       <h2>Inventory — CENTRAL</h2>
-      <div class="row">
-        <div class="col"><label>Category</label><select id="invCat"></select></div>
-        <div class="col"><label>Search</label><input id="invSearch" placeholder="Filter..."/></div>
-      </div>
       <div class="scrollbox inventory" style="margin-top:12px">
-        <table id="invTbl"><thead><tr>
-          <th>Code</th><th>Name</th><th>Brand</th><th>Price</th><th>Category</th><th class="t-right">Qty</th><th>Status</th>
-        </tr></thead><tbody></tbody></table>
-      </div>
-    </section>
-
-    <!-- History -->
-    <section id="view-history" class="card hidden">
-      <div style="display:flex;align-items:center;gap:10px;justify-content:space-between">
-        <h2>Transaction History</h2>
-        <div class="actions">
-          <input id="wardNew" placeholder="Add ward name" style="width:180px"/>
-          <button class="btn" id="btnWardAdd">Add Ward</button>
-          <button class="btn" id="btnClearHist">Clear All History</button>
-        </div>
-      </div>
-      <div class="row" style="margin-top:12px">
-        <div class="col"><label>Date</label><input id="histDate" type="date"/></div>
-        <div class="col"><label>Ward (filter)</label><select id="histWard"></select></div>
-        <div class="col actions" style="align-items:flex-end">
-          <button class="btn" id="btnHistRefresh">Refresh</button>
-          <button class="btn" id="btnExport">Export CSV</button>
-          <button class="btn" id="btnPing">Ping</button>
-        </div>
-      </div>
-      <div style="margin-top:12px">
-        <table id="histTbl"><thead><tr><th>Time</th><th>Type</th><th>Item</th><th class="t-right">Qty</th><th>From</th><th>To</th><th>By</th><th></th></tr></thead><tbody></tbody></table>
-        <span class="hint">Delete only entries on the selected date. Deleting auto-reverses stock.</span>
-      </div>
-    </section>
-
-    <!-- Analysis -->
-    <section id="view-analysis" class="card hidden">
-      <h2>Data Analysis — CENTRAL</h2>
-      <div class="row">
-        <div class="col"><label>From</label><input id="anFrom" type="date"/></div>
-        <div class="col"><label>To</label><input id="anTo" type="date"/></div>
-        <div class="col actions" style="align-items:flex-end"><button class="btn" id="btnAnRun">Run</button></div>
-      </div>
-      <div class="row" style="margin-top:12px">
-        <div class="col card"><h3>Fast Moving</h3><table id="anFast"><thead><tr><th>Item</th><th class="t-right">Qty</th></tr></thead><tbody></tbody></table></div>
-        <div class="col card"><h3>Slow / Unused</h3><table id="anSlow"><thead><tr><th>Item</th><th class="t-right">Qty</th></tr></thead><tbody></tbody></table></div>
-        <div class="col card"><h3>Critical Stock</h3><table id="anCritical"><thead><tr><th>Item</th><th class="t-right">Qty</th></tr></thead><tbody></tbody></table></div>
+        <table id="invTbl"><thead><tr><th>Code</th><th>Name</th><th>Brand</th><th>Price</th><th>Category</th><th class="t-right">Qty</th><th>Status</th></tr></thead><tbody></tbody></table>
       </div>
     </section>
   </main>
@@ -179,83 +120,54 @@
 
 <script>
 /* ===== CONFIG ===== */
-const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzuS-LZ_55NzNAoR4a7FbBFCpfmL3dUzXK-LHZhFQ64k551JftUvBQ2hQXENaTK2tng/exec';
-const DB_KEY = 'osmak_ims_v1'; const CENTRAL='CENTRAL'; const TZ='Asia/Manila';
+const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzuS-LZ_55NzNAoR4a7FbBFCpfmL3dUzXK-LHZhFQ64k551JftUvBQ2hQXENaTK2tng/exec';  // <-- put your Apps Script Web App URL here
+const DB_KEY='osmak_ims_v1';const CENTRAL='CENTRAL';
 
 /* ===== HELPERS ===== */
-const nowISO=()=>new Date().toISOString();
-const fmtDateTZ=(d,tz=TZ)=>new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
-const todayStrTZ=(tz=TZ)=>fmtDateTZ(new Date(),tz);
 const fmtPHP=(n)=>new Intl.NumberFormat('en-PH',{style:'currency',currency:'PHP'}).format(Number(n||0));
-const uid=()=>`TX-${new Date().toISOString().replace(/[-:.TZ]/g,'').slice(0,14)}-${Math.random().toString(36).slice(2,6)}`;
-
-/* ===== STORAGE ===== */
-const loadDB=()=>{const def={items:[],stock:[],tx:[],wards:[CENTRAL,'ER','OPD','MICU','SICU']};try{return JSON.parse(localStorage.getItem(DB_KEY))||def}catch{return def}};
+const nowISO=()=>new Date().toISOString();
+const loadDB=()=>{const def={items:[],stock:[],tx:[]};try{return JSON.parse(localStorage.getItem(DB_KEY))||def}catch{return def}};
 const saveDB=(db)=>localStorage.setItem(DB_KEY,JSON.stringify(db));
-
-/* ===== DATA UTILS ===== */
-function getItem(code){return loadDB().items.find(x=>x.ItemCode===code);}
-function upsertItem(o){const db=loadDB();const code=o.ItemCode.trim().toUpperCase();if(!code)throw new Error('Item Code required');
-const ix=db.items.findIndex(x=>x.ItemCode===code);const rec={...o,ItemCode:code,UnitPrice:Number(o.Price||0),CriticalLevel:Number(o.CriticalLevel||0),Active:true,CreatedAt:nowISO(),UpdatedAt:nowISO()};
-if(ix>=0)db.items[ix]={...db.items[ix],...rec,CreatedAt:db.items[ix].CreatedAt,UpdatedAt:nowISO()};else db.items.push(rec);saveDB(db);return rec;}
-function findItemByQuery(q){const s=q.trim().toLowerCase();if(!s)return[];return loadDB().items.filter(it=>[it.ItemCode,it.ItemName,it.Brand,it.Category].some(v=>(v||'').toLowerCase().includes(s))).slice(0,50);}
-function stockGet(c,w){return loadDB().stock.find(x=>x.ItemCode===c&&x.Ward===w)?.Qty||0;}
-function stockSetDelta(c,w,d){const db=loadDB();const i=db.stock.findIndex(x=>x.ItemCode===c&&x.Ward===w);if(i<0)db.stock.push({ItemCode:c,Ward:w,Qty:Math.max(0,d)});else db.stock[i].Qty=Math.max(0,(db.stock[i].Qty||0)+d);saveDB(db);}
-function addTx(t){const db=loadDB();db.tx.unshift(t);saveDB(db);}
-
-/* ===== RENDER: INVENTORY ===== */
-function ensureCategoryOptions(){const sel=invCat;if(!sel)return;const db=loadDB();const cats=new Set();db.items.forEach(it=>{if(db.stock.some(s=>s.ItemCode===it.ItemCode&&s.Ward===CENTRAL))cats.add(it.Category||'');});
-sel.innerHTML='';sel.appendChild(new Option('ALL','ALL'));[...cats].sort().forEach(c=>sel.appendChild(new Option(c,c)));sel.value='ALL';}
-
-function renderInventory(){
-  ensureCategoryOptions();const db=loadDB();const cat=invCat.value||'ALL';const q=(invSearch.value||'').toLowerCase();const rows=[];
-  db.stock.filter(s=>s.Ward===CENTRAL).forEach(s=>{
-    const it=getItem(s.ItemCode);if(!it)return;
-    if(cat!=='ALL'&&(it.Category||'')!==cat)return;
-    const text=`${it.ItemCode} ${it.ItemName} ${it.Brand||''} ${it.Category||''}`.toLowerCase();if(q&&!text.includes(q))return;
-    const crit=Number(it.CriticalLevel||0);
-    const status=s.Qty<=0?'<span class="pill bad">Out</span>':(crit&&s.Qty<=crit?'<span class="pill warn">Critical</span>':'<span class="pill">OK</span>');
-    const cls=s.Qty<=0?'row-out':(crit&&s.Qty<=crit?'row-crit':'row-ok');
-    rows.push(`<tr class="${cls}"><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td class="t-right">${fmtPHP(it.UnitPrice||0)}</td><td>${it.Category||''}</td><td class="t-right">${s.Qty}</td><td>${status}</td></tr>`);
-  });
-  document.querySelector('#invTbl tbody').innerHTML=rows.join('')||'<tr><td colspan="7" class="hint">No records.</td></tr>';
-}
-invCat.onchange=renderInventory;invSearch.oninput=renderInventory;
+function getItem(code){return loadDB().items.find(x=>x.ItemCode===code)}
+function findItemByQuery(q){const s=q.trim().toLowerCase();if(!s)return[];return loadDB().items.filter(it=>[it.ItemCode,it.ItemName,it.Brand,it.Category].some(v=>(v||'').toLowerCase().includes(s))).slice(0,50)}
 
 /* ===== REGISTRATION ===== */
-function renderItems(){const tb=document.querySelector('#itemsTable tbody');if(!tb)return;
-const items=loadDB().items.sort((a,b)=>a.ItemName.localeCompare(b.ItemName));
+function renderItems(){const tb=document.querySelector('#itemsTable tbody');const items=loadDB().items;
 tb.innerHTML=items.map(it=>`<tr data-code="${it.ItemCode}"><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td class="t-right">${fmtPHP(it.UnitPrice||0)}</td><td>${it.Category||''}</td><td class="t-right">${it.CriticalLevel||''}</td><td>${it.Remarks||''}</td></tr>`).join('');
-tb.querySelectorAll('tr[data-code]').forEach(tr=>tr.onclick=()=>{
-  const it=getItem(tr.dataset.code);if(!it)return;
-  regCode.value=it.ItemCode;regName.value=it.ItemName;regBrand.value=it.Brand;regCat.value=it.Category;regPrice.value=it.UnitPrice;regCrit.value=it.CriticalLevel;regRemarks.value=it.Remarks;
-  regHint.textContent='Editing '+it.ItemCode+' (click Save to update)';
-});}
-btnAddItem.onclick=()=>{try{const rec=upsertItem({ItemCode:regCode.value,ItemName:regName.value,Brand:regBrand.value,Category:regCat.value,Remarks:regRemarks.value,CriticalLevel:regCrit.value,Price:regPrice.value});
-regHint.textContent=`Saved ${rec.ItemCode}`;['regCode','regName','regBrand','regCat','regPrice','regRemarks','regCrit'].forEach(id=>document.getElementById(id).value='');renderItems();renderInventory();}catch(e){regHint.textContent=e.message;}};
+tb.querySelectorAll('tr[data-code]').forEach(tr=>tr.onclick=()=>{const it=getItem(tr.dataset.code);regCode.value=it.ItemCode;regName.value=it.ItemName;regBrand.value=it.Brand;regCat.value=it.Category;regPrice.value=it.UnitPrice;regCrit.value=it.CriticalLevel;regRemarks.value=it.Remarks;regHint.textContent='Editing '+it.ItemCode;})}
+btnAddItem.onclick=()=>{const db=loadDB();const code=regCode.value.trim().toUpperCase();if(!code){regHint.textContent='Item Code required';return;}
+const rec={ItemCode:code,ItemName:regName.value,Brand:regBrand.value,Category:regCat.value,UnitPrice:Number(regPrice.value||0),CriticalLevel:Number(regCrit.value||0),Remarks:regRemarks.value,CreatedAt:nowISO(),UpdatedAt:nowISO()};
+const i=db.items.findIndex(x=>x.ItemCode===code);if(i>=0)db.items[i]=rec;else db.items.push(rec);saveDB(db);regHint.textContent='Saved '+code;renderItems();renderInventory();};
 
-/* ===== LOG & TRANSFER CART TOTALS ===== */
-function renderCartTotals(arr,target){const totalQty=arr.reduce((a,x)=>a+x.qty,0);const totalVal=arr.reduce((a,x)=>{const it=getItem(x.code);return a+(it?(it.UnitPrice||0)*x.qty:0);},0);
-target.insertAdjacentHTML('afterend',`<div class="hint t-right" style="margin-top:6px">Total Qty: <b>${totalQty}</b> • Est. Value: <b>${fmtPHP(totalVal)}</b></div>`);}
+/* ===== SEARCH FIX ===== */
+function renderLogItems(){const tb=document.querySelector('#logItemsTbl tbody');const q=logSearch.value.trim();if(!q){tb.innerHTML='';return;}const list=findItemByQuery(q);
+tb.innerHTML=list.length?list.map(it=>`<tr data-code="${it.ItemCode}"><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td>${it.Category||''}</td></tr>`).join(''):'<tr><td colspan="4" class="hint">No matches.</td></tr>';}
+logSearch.addEventListener('input',renderLogItems);logSearch.addEventListener('focus',renderLogItems);
+function renderTrItems(){const tb=document.querySelector('#trItemsTbl tbody');const q=trSearch.value.trim();if(!q){tb.innerHTML='';return;}const list=findItemByQuery(q);
+tb.innerHTML=list.length?list.map(it=>`<tr data-code="${it.ItemCode}"><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td>${it.Category||''}</td></tr>`).join(''):'<tr><td colspan="4" class="hint">No matches.</td></tr>';}
+trSearch.addEventListener('input',renderTrItems);trSearch.addEventListener('focus',renderTrItems);
 
-/* ===== VIRTUALIZATION (simple) ===== */
-function virtualRender(tblId,rows,rowH=36){const tbl=document.getElementById(tblId);if(!tbl)return;const box=tbl.closest('.scrollbox');if(!box)return;
-const total=rows.length;const buf=document.createElement('tbody');tbl.querySelector('tbody').replaceWith(buf);
-function renderChunk(){const start=Math.floor(box.scrollTop/rowH);const visible=Math.ceil(box.clientHeight/rowH)+3;const end=Math.min(total,start+visible);
-buf.innerHTML=rows.slice(start,end).join('');}
-box.onscroll=renderChunk;renderChunk();}
+/* ===== INVENTORY ===== */
+function renderInventory(){const db=loadDB();const tb=document.querySelector('#invTbl tbody');const rows=[];
+db.stock.filter(s=>s.Ward===CENTRAL).forEach(s=>{const it=getItem(s.ItemCode);if(!it)return;const crit=Number(it.CriticalLevel||0);const cls=s.Qty<=0?'row-out':(crit&&s.Qty<=crit?'row-crit':'row-ok');
+const status=s.Qty<=0?'<span class="pill bad">Out</span>':(crit&&s.Qty<=crit?'<span class="pill warn">Critical</span>':'<span class="pill">OK</span>');
+rows.push(`<tr class="${cls}"><td>${it.ItemCode}</td><td>${it.ItemName}</td><td>${it.Brand||''}</td><td class="t-right">${fmtPHP(it.UnitPrice||0)}</td><td>${it.Category||''}</td><td class="t-right">${s.Qty}</td><td>${status}</td></tr>`);});
+tb.innerHTML=rows.join('')||'<tr><td colspan="7" class="hint">No records.</td></tr>';}
 
-/* ===== SYNC STATUS ===== */
-function updateSyncTime(){const t=localStorage.getItem('lastSync');if(t)syncStatus.textContent='Last sync: '+t;}
-
-/* ===== INIT ===== */
-function init(){document.querySelectorAll('.menu button').forEach(btn=>btn.onclick=()=>switchView(btn.dataset.view));renderItems();renderInventory();updateSyncTime();}
-function switchView(v){document.querySelectorAll('.menu button').forEach(b=>b.classList.toggle('active',b.dataset.view===v));document.querySelectorAll('main section').forEach(s=>s.classList.toggle('hidden',s.id!=='view-'+v));}
+/* ===== SYNC + PING ===== */
+btnPing.onclick=async()=>{try{const r=await fetch(BACKEND_URL,{method:'GET',cache:'no-store'});const t=await r.text();alert('Ping response: '+t);}catch(e){alert('Ping failed: '+e.message);}};
+btnSync.onclick=async()=>{try{const db=loadDB();const r=await fetch(BACKEND_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'sync',payload:db})});
+const t=await r.text();if(t.includes('"ok":true')){alert('Synced to Google Sheets.');localStorage.setItem('lastSync',new Date().toLocaleString());syncStatus.textContent='Last sync: '+new Date().toLocaleString();}else throw new Error(t);}catch(e){alert('Sync error: '+e.message);}};
 
 /* ===== SERVICE WORKER ===== */
 if('serviceWorker'in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').then(()=>console.log('SW registered')).catch(console.warn));}
 
-init();
+/* ===== INIT ===== */
+function switchView(v){document.querySelectorAll('.menu button').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
+document.querySelectorAll('main section').forEach(s=>s.classList.toggle('hidden',s.id!=='view-'+v));
+if(v==='registration')renderItems();if(v==='inventory')renderInventory();if(v==='log')renderLogItems();if(v==='transfer')renderTrItems();}
+document.querySelectorAll('.menu button').forEach(b=>b.onclick=()=>switchView(b.dataset.view));
+renderItems();renderInventory();
 </script>
 </body>
 </html>
